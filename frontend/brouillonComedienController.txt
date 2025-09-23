@@ -1,0 +1,142 @@
+package com.example.films.controller;
+
+import com.example.films.dto.ComedienDTO;
+import com.example.films.dto.CreateComedienDTO;
+import com.example.films.service.ComedienService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@RestController
+@RequestMapping("/comediens")
+/*@CrossOrigin(origins = "http://localhost:5173")*/
+public class ComedienController {
+    private final ComedienService comedienService;
+
+    public ComedienController(ComedienService comedienService) {
+        this.comedienService = comedienService;
+    }
+
+    @GetMapping
+    public ResponseEntity<List<ComedienDTO>> getAllComediens() {
+        try {
+            List<ComedienDTO> comediens = comedienService.getAllComediens();
+            return ResponseEntity.ok(comediens);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ComedienDTO> getComedienById(@PathVariable Long id) {
+        try {
+            ComedienDTO comedien = comedienService.getComedienById(id);
+            return ResponseEntity.ok(comedien);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<ComedienDTO> createComedien(@RequestBody CreateComedienDTO createComedienDTO) {
+        try {
+            ComedienDTO createdComedien = comedienService.createComedien(createComedienDTO);
+            return new ResponseEntity<>(createdComedien, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ComedienDTO> updateComedien(@PathVariable Long id, 
+                                                     @RequestBody CreateComedienDTO updateComedienDTO) {
+        try {
+            ComedienDTO updatedComedien = comedienService.updateComedien(id, updateComedienDTO);
+            return ResponseEntity.ok(updatedComedien);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteComedien(@PathVariable Long id) {
+        try {
+            comedienService.deleteComedien(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{id}/disponibilites")
+    public ResponseEntity<Void> addDisponibilite(@PathVariable Long id,
+                                                @RequestParam LocalDate date,
+                                                @RequestParam String statut) {
+        try {
+            comedienService.addDisponibilite(id, date, statut);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PutMapping("/{id}/disponibilites/{disponibiliteId}")
+    public ResponseEntity<Void> updateDisponibilite(@PathVariable Long id,
+                                                @PathVariable Long disponibiliteId,
+                                                @RequestBody DisponibiliteUpdateRequest request) {
+        try {
+            comedienService.updateDisponibilite(id, disponibiliteId, request.getDate(), request.getStatut());
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}/disponibilites/{disponibiliteId}")
+    public ResponseEntity<Void> deleteDisponibilite(@PathVariable Long id,
+                                                @PathVariable Long disponibiliteId) {
+        try {
+            comedienService.deleteDisponibilite(id, disponibiliteId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Classe pour la requête de mise à jour
+    public static class DisponibiliteUpdateRequest {
+        private LocalDate date;
+        private String statut;
+        
+        // Getters et setters
+        public LocalDate getDate() { return date; }
+        public void setDate(LocalDate date) { this.date = date; }
+        public String getStatut() { return statut; }
+        public void setStatut(String statut) { this.statut = statut; }
+    }
+}
+
+
+
+
+.form-input,
+.form-select,
+.form-textarea {
+  padding: 0.75rem;
+  border: none;
+  border-radius: 10px;
+  background: rgba(44, 62, 80, 0.8); /* Bleu nuit sombre */
+  color: #ecf0f1;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  background: rgba(44, 62, 80, 1);
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+}

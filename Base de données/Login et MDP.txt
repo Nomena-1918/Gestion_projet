@@ -1,0 +1,11 @@
+Admin : 
+    nom : Admin Principal
+    email : admin@gmail.com
+    mot de passe : MotdepasseAdmin123 
+    role : ADMIN
+
+SCENARISTE : 
+    nom : Marc Leroy
+    email : marc.leroy@gmail.com
+    mot de passe : mdpScenariste1
+    role : SCENARISTE

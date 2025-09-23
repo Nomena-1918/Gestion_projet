@@ -1,0 +1,783 @@
+<template>
+  <div class="ecran-travail">
+    <!-- Header avec titre de l'épisode -->
+    <header class="header">
+      <h1>
+        Épisode: {{ currentEpisode?.titre || 'Chargement...' }}
+        <span class="icon-edit" @click="startEditEpisode">✏️</span>
+      </h1>
+      <div class="navigation">
+        <button class="nav-btn" @click="goToPrevPage" :disabled="!currentSequence || isLoading">Précédent</button>
+        <button class="nav-btn" @click="goToNextPage" :disabled="!currentSequence || isLoading">Suivant</button>
+      </div>
+    </header>
+
+    <!-- Indicateur de chargement -->
+    <div v-if="isLoading" class="loading">Chargement en cours...</div>
+
+    <!-- Message d'erreur -->
+    <div v-if="error && !isLoading" class="error-message">
+      {{ error }}
+      <button class="retry-btn" @click="retryFetch">Réessayer</button>
+    </div>
+
+    <!-- Contenu de la séquence -->
+    <main class="sequence-page" v-if="currentSequence && !isLoading">
+      <h2>
+        Séquence {{ currentSequence.ordre }}: {{ currentSequence.titre }}
+        <span class="icon-edit" @click="startEditSequence(currentSequence)">✏️</span>
+        <span class="comment-icon" @click="toggleSequenceCommentSection">
+          💬 {{ sequenceCommentCount }}
+        </span>
+      </h2>
+
+      <!-- Section commentaires séquence -->
+      <div v-if="showSequenceCommentSection" class="comment-section">
+        <h4>Commentaires sur la séquence</h4>
+        <div class="add-comment">
+          <textarea v-model="newSequenceComment" placeholder="Ajouter un commentaire..." rows="3"></textarea>
+          <button @click="addSequenceComment" class="add-comment-btn">Ajouter</button>
+        </div>
+        <div class="comments-list">
+          <div v-for="comment in sequenceComments" :key="comment.id" class="comment-item">
+            <div class="comment-header">
+              <span class="comment-author">{{ comment.utilisateurNom }}</span>
+              <span class="comment-date">{{ formatDate(comment.creeLe) }}</span>
+            </div>
+            <div class="comment-content">
+              {{ comment.contenu }}
+            </div>
+            <div class="comment-actions" v-if="comment.utilisateurId === user.id">
+              <button @click="deleteSequenceComment(comment.id)" class="delete-comment-btn">Supprimer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p><strong>Synopsis:</strong> {{ currentSequence.synopsis || 'Aucun synopsis' }}</p>
+      <p><strong>Statut:</strong> {{ currentSequence.statutNom || 'Non défini' }}</p>
+
+      <!-- Liste des scènes -->
+      <div class="scenes-list">
+        <div v-for="scene in currentSequence.scenes" :key="scene.idScene" class="scene-card">
+          <h3>
+            Scène {{ scene.ordre }}: {{ scene.titre }}
+            <span class="icon-edit" @click="startEditScene(scene)">✏️</span>
+            <span class="comment-icon" @click="toggleSceneCommentSection(scene)">
+              💬 {{ getSceneCommentCount(scene.idScene) }}
+            </span>
+          </h3>
+
+          <!-- Section commentaires scène -->
+          <div v-if="showSceneCommentModal && selectedScene?.idScene === scene.idScene" class="comment-section">
+            <h4>Commentaires sur la scène</h4>
+            <div class="add-comment">
+              <textarea v-model="newSceneComment" placeholder="Ajouter un commentaire..." rows="3"></textarea>
+              <button @click="addSceneComment" class="add-comment-btn">Ajouter</button>
+            </div>
+            <div class="comments-list">
+              <div v-for="comment in sceneComments" :key="comment.id" class="comment-item">
+                <div class="comment-header">
+                  <span class="comment-author">{{ comment.utilisateurNom }}</span>
+                  <span class="comment-date">{{ formatDate(comment.creeLe) }}</span>
+                </div>
+                <div class="comment-content">
+                  {{ comment.contenu }}
+                </div>
+                <div class="comment-actions" v-if="comment.utilisateurId === user.id">
+                  <button @click="deleteSceneComment(comment.id)" class="delete-comment-btn">Supprimer</button>
+                </div>
+              </div>
+            </div>
+            <button @click="closeSceneCommentModal" class="close-comments-btn">Fermer</button>
+          </div>
+
+          <p><strong>Synopsis:</strong> {{ scene.synopsis || 'Aucun synopsis' }}</p>
+          <p><strong>Statut:</strong> {{ scene.statutNom || 'Non défini' }}</p>
+
+          <!-- Lieux et Plateaux -->
+          <div class="lieux-plateaux" v-if="scene.sceneLieus?.length">
+            <h4>Lieux et Plateaux:</h4>
+            <ul>
+              <li v-for="sceneLieu in scene.sceneLieus" :key="sceneLieu.id">
+                <strong>Lieu:</strong> {{ sceneLieu.lieuNom }} (Type: {{ sceneLieu.lieu?.typeLieu || 'Non spécifié' }})
+                <span v-if="sceneLieu.plateauNom"> - <strong>Plateau:</strong> {{ sceneLieu.plateauNom }}</span>
+                <p v-if="sceneLieu.descriptionUtilisation">Description: {{ sceneLieu.descriptionUtilisation }}</p>
+              </li>
+            </ul>
+          </div>
+          <p v-else>Aucun lieu ou plateau associé.</p>
+
+          <!-- Dialogues -->
+          <div class="dialogues" v-if="scene.dialogues?.length">
+            <h4>Dialogues:</h4>
+            <ul>
+              <li v-for="dialogue in scene.dialogues" :key="dialogue.id">
+                <strong>{{ dialogue.personnageNom || 'Narrateur' }}:</strong> {{ dialogue.texte }} <br><br>
+                <span v-if="dialogue.observation">{{ dialogue.observation }}</span>
+              </li>
+            </ul>
+          </div>
+          <p v-else>Aucun dialogue associé.</p>
+        </div>
+      </div>
+    </main>
+    <div v-else-if="!isLoading" class="no-data">
+      <p>Aucune séquence disponible pour cet épisode.</p>
+    </div>
+
+    <!-- Modale pour éditer l'épisode -->
+    <div v-if="showEditEpisodeModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>
+            <i class="fas fa-edit icon"></i>
+            Modifier l'épisode
+          </h3>
+          <button @click="closeEditEpisodeModal" class="close-btn"><i class="fas fa-times icon"></i></button>
+        </div>
+        <form @submit.prevent="saveEditedEpisode" class="edit-form">
+          <div class="form-group">
+            <label for="edit-episode-titre">Titre</label>
+            <input
+              type="text"
+              id="edit-episode-titre"
+              v-model="editingEpisode.titre"
+              required
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-episode-synopsis">Synopsis</label>
+            <textarea
+              id="edit-episode-synopsis"
+              v-model="editingEpisode.synopsis"
+              rows="4"
+              class="form-textarea"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label for="edit-episode-ordre">Ordre</label>
+            <input
+              type="number"
+              id="edit-episode-ordre"
+              v-model="editingEpisode.ordre"
+              required
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-episode-statut">Statut</label>
+            <select
+              id="edit-episode-statut"
+              v-model="editingEpisode.statutId"
+              required
+              class="form-select"
+            >
+              <option value="">Sélectionnez un statut</option>
+              <option v-for="statut in statutsEpisode" :key="statut.idStatutEpisode" :value="statut.idStatutEpisode">
+                {{ statut.nomStatutsEpisode }}
+              </option>
+            </select>
+          </div>
+          <div v-if="editEpisodeError" class="error-message">
+            {{ editEpisodeError }}
+          </div>
+          <div class="modal-actions">
+            <button type="button" @click="closeEditEpisodeModal" class="cancel-btn">Annuler</button>
+            <button type="submit" class="save-btn" :disabled="editEpisodeLoading">
+              {{ editEpisodeLoading ? 'Sauvegarde...' : 'Sauvegarder' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modale pour éditer la séquence -->
+    <div v-if="showEditSequenceModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>
+            <i class="fas fa-edit icon"></i>
+            Modifier la séquence
+          </h3>
+          <button @click="closeEditSequenceModal" class="close-btn"><i class="fas fa-times icon"></i></button>
+        </div>
+        <form @submit.prevent="saveEditedSequence" class="edit-form">
+          <div class="form-group">
+            <label for="edit-sequence-titre">Titre</label>
+            <input
+              type="text"
+              id="edit-sequence-titre"
+              v-model="editingSequence.titre"
+              required
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-sequence-synopsis">Synopsis</label>
+            <textarea
+              id="edit-sequence-synopsis"
+              v-model="editingSequence.synopsis"
+              rows="4"
+              class="form-textarea"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label for="edit-sequence-ordre">Ordre</label>
+            <input
+              type="number"
+              id="edit-sequence-ordre"
+              v-model="editingSequence.ordre"
+              required
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-sequence-statut">Statut</label>
+            <select
+              id="edit-sequence-statut"
+              v-model="editingSequence.statutId"
+              required
+              class="form-select"
+            >
+              <option value="">Sélectionnez un statut</option>
+              <option v-for="statut in statutsSequence" :key="statut.id" :value="statut.id">
+                {{ statut.nomStatutsSequence }}
+              </option>
+            </select>
+          </div>
+          <div v-if="editSequenceError" class="error-message">
+            {{ editSequenceError }}
+          </div>
+          <div class="modal-actions">
+            <button type="button" @click="closeEditSequenceModal" class="cancel-btn">Annuler</button>
+            <button type="submit" class="save-btn" :disabled="editSequenceLoading">
+              {{ editSequenceLoading ? 'Sauvegarde...' : 'Sauvegarder' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modale pour éditer la scène -->
+    <div v-if="showEditSceneModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>
+            <i class="fas fa-edit icon"></i>
+            Modifier la scène
+          </h3>
+          <button @click="closeEditSceneModal" class="close-btn"><i class="fas fa-times icon"></i></button>
+        </div>
+        <form @submit.prevent="saveEditedScene" class="edit-form">
+          <div class="form-group">
+            <label for="edit-scene-titre">Titre</label>
+            <input
+              type="text"
+              id="edit-scene-titre"
+              v-model="editingScene.titre"
+              required
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-scene-synopsis">Synopsis</label>
+            <textarea
+              id="edit-scene-synopsis"
+              v-model="editingScene.synopsis"
+              rows="4"
+              class="form-textarea"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label for="edit-scene-ordre">Ordre</label>
+            <input
+              type="number"
+              id="edit-scene-ordre"
+              v-model="editingScene.ordre"
+              required
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-scene-statut">Statut</label>
+            <select
+              id="edit-scene-statut"
+              v-model="editingScene.statutId"
+              required
+              class="form-select"
+            >
+              <option value="">Sélectionnez un statut</option>
+              <option v-for="statut in statutsScene" :key="statut.id" :value="statut.id">
+                {{ statut.nomStatutsScene }}
+              </option>
+            </select>
+          </div>
+          <div v-if="editSceneError" class="error-message">
+            {{ editSceneError }}
+          </div>
+          <div class="modal-actions">
+            <button type="button" @click="closeEditSceneModal" class="cancel-btn">Annuler</button>
+            <button type="submit" class="save-btn" :disabled="editSceneLoading">
+              {{ editSceneLoading ? 'Sauvegarde...' : 'Sauvegarder' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { useEcranTravailStore } from '../stores/ecranTravailStore';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import axios from 'axios';
+import '../assets/css/ecran_travail.css';
+
+const route = useRoute();
+const store = useEcranTravailStore();
+
+// Données pour les commentaires
+const user = ref(JSON.parse(localStorage.getItem('user')) || null);
+const showSequenceCommentSection = ref(false);
+const newSequenceComment = ref('');
+const sequenceComments = ref([]);
+const sequenceCommentCount = ref(0);
+
+const showSceneCommentModal = ref(false);
+const selectedScene = ref(null);
+const newSceneComment = ref('');
+const sceneComments = ref([]);
+const sceneCommentCounts = ref({});
+
+// Données pour l'édition des épisodes
+const showEditEpisodeModal = ref(false);
+const editingEpisode = ref({
+  id: null,
+  titre: '',
+  synopsis: '',
+  ordre: null,
+  statutId: null
+});
+const statutsEpisode = ref([]);
+const editEpisodeError = ref('');
+const editEpisodeLoading = ref(false);
+
+// Données pour l'édition des séquences
+const showEditSequenceModal = ref(false);
+const editingSequence = ref({
+  id: null,
+  titre: '',
+  synopsis: '',
+  ordre: null,
+  statutId: null
+});
+const statutsSequence = ref([]);
+const editSequenceError = ref('');
+const editSequenceLoading = ref(false);
+
+// Données pour l'édition des scènes
+const showEditSceneModal = ref(false);
+const editingScene = ref({
+  id: null,
+  titre: '',
+  synopsis: '',
+  ordre: null,
+  statutId: null
+});
+const statutsScene = ref([]);
+const editSceneError = ref('');
+const editSceneLoading = ref(false);
+
+onMounted(async () => {
+  const projetId = route.params.idProjet || '1';
+  await store.fetchEpisodes(projetId);
+  if (store.currentSequence) {
+    await loadSequenceCommentCount();
+    await loadSceneCommentCounts();
+  }
+  await Promise.all([
+    loadStatutsEpisode(),
+    loadStatutsSequence(),
+    loadStatutsScene()
+  ]);
+});
+
+// Charger les statuts
+const loadStatutsEpisode = async () => {
+  try {
+    const response = await axios.get('/api/statuts-episode');
+    statutsEpisode.value = response.data;
+  } catch (error) {
+    console.error('Erreur lors du chargement des statuts d\'épisode:', error);
+  }
+};
+
+const loadStatutsSequence = async () => {
+  try {
+    const response = await axios.get('/api/statuts-sequence');
+    statutsSequence.value = response.data;
+  } catch (error) {
+    console.error('Erreur lors du chargement des statuts de séquence:', error);
+  }
+};
+
+const loadStatutsScene = async () => {
+  try {
+    const response = await axios.get('/api/statuts-scene');
+    statutsScene.value = response.data;
+  } catch (error) {
+    console.error('Erreur lors du chargement des statuts de scène:', error);
+  }
+};
+
+// Helpers
+const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+
+const getStatuts = (type) => {
+  if (type === 'episode') return statutsEpisode.value;
+  if (type === 'sequence') return statutsSequence.value;
+  if (type === 'scene') return statutsScene.value;
+  return [];
+};
+
+const getNomField = (type) => `nomStatuts${capitalize(type)}`;
+
+const getIdField = (type) => {
+  if (type === 'episode') return 'idStatutEpisode';
+  return 'id';
+};
+
+// Méthode utilitaire pour obtenir l'ID de statut
+const getStatutIdByNom = (type, nom) => {
+  const statuts = getStatuts(type);
+  const nomField = getNomField(type);
+  const statut = statuts.find(s => s[nomField] === nom);
+  const idField = getIdField(type);
+  return statut ? statut[idField] : null;
+};
+
+// Méthode utilitaire pour obtenir le nom de statut
+const getStatutNomById = (type, id) => {
+  const statuts = getStatuts(type);
+  const idField = getIdField(type);
+  const nomField = getNomField(type);
+  const statut = statuts.find(s => s[idField] === id);
+  return statut ? statut[nomField] : '';
+};
+
+// Méthodes pour l'édition des épisodes
+const startEditEpisode = () => {
+  editingEpisode.value = {
+    id: currentEpisode.value.idEpisode,
+    titre: currentEpisode.value.titre,
+    synopsis: currentEpisode.value.synopsis || '',
+    ordre: currentEpisode.value.ordre,
+    statutId: getStatutIdByNom('episode', currentEpisode.value.statutNom)
+  };
+  editEpisodeError.value = '';
+  showEditEpisodeModal.value = true;
+};
+
+const saveEditedEpisode = async () => {
+  editEpisodeLoading.value = true;
+  editEpisodeError.value = '';
+
+  try {
+    const url = `/api/episodes/${editingEpisode.value.id}`;
+    const updateData = {
+      titre: editingEpisode.value.titre,
+      synopsis: editingEpisode.value.synopsis,
+      ordre: parseInt(editingEpisode.value.ordre),
+      statutId: editingEpisode.value.statutId
+    };
+    const response = await axios.put(url, updateData);
+    if (response.status === 200) {
+      store.currentEpisode.titre = editingEpisode.value.titre;
+      store.currentEpisode.synopsis = editingEpisode.value.synopsis;
+      store.currentEpisode.ordre = editingEpisode.value.ordre;
+      store.currentEpisode.statutNom = getStatutNomById('episode', editingEpisode.value.statutId);
+      const episodeIndex = store.episodes.findIndex(e => e.idEpisode === editingEpisode.value.id);
+      if (episodeIndex !== -1) {
+        store.episodes[episodeIndex] = { ...store.episodes[episodeIndex], ...editingEpisode.value };
+      }
+      closeEditEpisodeModal();
+    }
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de l\'épisode:', error);
+    editEpisodeError.value = error.response?.data?.message || 'Erreur lors de la mise à jour de l\'épisode';
+  } finally {
+    editEpisodeLoading.value = false;
+  }
+};
+
+const closeEditEpisodeModal = () => {
+  showEditEpisodeModal.value = false;
+  editingEpisode.value = { id: null, titre: '', synopsis: '', ordre: null, statutId: null };
+  editEpisodeError.value = '';
+};
+
+
+
+// Méthodes pour l'édition des séquences
+const startEditSequence = (sequence) => {
+  editingSequence.value = {
+    id: sequence.idSequence,
+    titre: sequence.titre,
+    synopsis: sequence.synopsis || '',
+    ordre: sequence.ordre,
+    statutId: getStatutIdByNom('sequence', sequence.statutNom)
+  };
+  editSequenceError.value = '';
+  showEditSequenceModal.value = true;
+};
+
+const saveEditedSequence = async () => {
+  editSequenceLoading.value = true;
+  editSequenceError.value = '';
+
+  try {
+    const url = `/api/sequences/${editingSequence.value.id}`;
+    const updateData = {
+      titre: editingSequence.value.titre,
+      synopsis: editingSequence.value.synopsis,
+      ordre: parseInt(editingSequence.value.ordre),
+      statutId: editingSequence.value.statutId
+    };
+    const response = await axios.put(url, updateData);
+    if (response.status === 200) {
+      store.currentSequence.titre = editingSequence.value.titre;
+      store.currentSequence.synopsis = editingSequence.value.synopsis;
+      store.currentSequence.ordre = editingSequence.value.ordre;
+      store.currentSequence.statutNom = getStatutNomById('sequence', editingSequence.value.statutId);
+      await store.fetchEpisodes(route.params.idProjet || '1'); // Reload sequences
+      closeEditSequenceModal();
+    }
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la séquence:', error);
+    editSequenceError.value = error.response?.data?.message || 'Erreur lors de la mise à jour de la séquence';
+  } finally {
+    editSequenceLoading.value = false;
+  }
+};
+
+const closeEditSequenceModal = () => {
+  showEditSequenceModal.value = false;
+  editingSequence.value = { id: null, titre: '', synopsis: '', ordre: null, statutId: null };
+  editSequenceError.value = '';
+};
+
+
+
+// Méthodes pour l'édition des scènes
+const startEditScene = (scene) => {
+  editingScene.value = {
+    id: scene.idScene,
+    titre: scene.titre,
+    synopsis: scene.synopsis || '',
+    ordre: scene.ordre,
+    statutId: getStatutIdByNom('scene', scene.statutNom)
+  };
+  editSceneError.value = '';
+  showEditSceneModal.value = true;
+};
+
+const saveEditedScene = async () => {
+  editSceneLoading.value = true;
+  editSceneError.value = '';
+
+  try {
+    const url = `/api/scenes/${editingScene.value.id}`;
+    const updateData = {
+      titre: editingScene.value.titre,
+      synopsis: editingScene.value.synopsis,
+      ordre: parseInt(editingScene.value.ordre),
+      statutId: editingScene.value.statutId
+    };
+    const response = await axios.put(url, updateData);
+    if (response.status === 200) {
+      const sceneIndex = store.currentSequence.scenes.findIndex(s => s.idScene === editingScene.value.id);
+      if (sceneIndex !== -1) {
+        store.currentSequence.scenes[sceneIndex] = {
+          ...store.currentSequence.scenes[sceneIndex],
+          titre: editingScene.value.titre,
+          synopsis: editingScene.value.synopsis,
+          ordre: editingScene.value.ordre,
+          statutNom: getStatutNomById('scene', editingScene.value.statutId)
+        };
+      }
+      await store.fetchEpisodes(route.params.idProjet || '1'); // Reload scenes
+      closeEditSceneModal();
+    }
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la scène:', error);
+    editSceneError.value = error.response?.data?.message || 'Erreur lors de la mise à jour de la scène';
+  } finally {
+    editSceneLoading.value = false;
+  }
+};
+
+const closeEditSceneModal = () => {
+  showEditSceneModal.value = false;
+  editingScene.value = { id: null, titre: '', synopsis: '', ordre: null, statutId: null };
+  editSceneError.value = '';
+};
+
+
+
+
+// Méthodes pour les commentaires de séquence
+const toggleSequenceCommentSection = async () => {
+  showSequenceCommentSection.value = !showSequenceCommentSection.value;
+  if (showSequenceCommentSection.value) {
+    await loadSequenceComments();
+    await loadSequenceCommentCount();
+  }
+};
+
+const loadSequenceComments = async () => {
+  try {
+    const response = await axios.get(`/api/sequence-commentaires/sequence/${store.currentSequence.idSequence}`);
+    sequenceComments.value = response.data;
+  } catch (error) {
+    console.error('Erreur lors du chargement des commentaires de séquence:', error);
+  }
+};
+
+const loadSequenceCommentCount = async () => {
+  try {
+    const response = await axios.get(`/api/sequence-commentaires/sequence/${store.currentSequence.idSequence}/count`);
+    sequenceCommentCount.value = response.data;
+  } catch (error) {
+    console.error('Erreur lors du chargement du nombre de commentaires:', error);
+  }
+};
+
+const addSequenceComment = async () => {
+  if (!newSequenceComment.value.trim()) return;
+  try {
+    await axios.post('/api/sequence-commentaires', {
+      contenu: newSequenceComment.value,
+      sequenceId: store.currentSequence.idSequence
+    }, {
+      headers: {
+        'X-User-Id': user.value.id
+      }
+    });
+    newSequenceComment.value = '';
+    await loadSequenceComments();
+    await loadSequenceCommentCount();
+  } catch (error) {
+    console.error('Erreur lors de l\'ajout du commentaire:', error);
+    alert('Erreur lors de l\'ajout du commentaire');
+  }
+};
+
+const deleteSequenceComment = async (commentId) => {
+  if (confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
+    try {
+      await axios.delete(`/api/sequence-commentaires/${commentId}`);
+      await loadSequenceComments();
+      await loadSequenceCommentCount();
+    } catch (error) {
+      console.error('Erreur lors de la suppression du commentaire:', error);
+    }
+  }
+};
+
+// Méthodes pour les commentaires de scène
+const toggleSceneCommentSection = async (scene) => {
+  selectedScene.value = scene;
+  showSceneCommentModal.value = true;
+  await loadSceneComments(scene.idScene);
+};
+
+const closeSceneCommentModal = () => {
+  showSceneCommentModal.value = false;
+  selectedScene.value = null;
+  sceneComments.value = [];
+};
+
+const loadSceneComments = async (sceneId) => {
+  try {
+    const response = await axios.get(`/api/scene-commentaires/scene/${sceneId}`);
+    sceneComments.value = response.data;
+  } catch (error) {
+    console.error('Erreur lors du chargement des commentaires de scène:', error);
+  }
+};
+
+const getSceneCommentCount = (sceneId) => {
+  return sceneCommentCounts.value[sceneId] || 0;
+};
+
+const loadSceneCommentCounts = async () => {
+  if (!store.currentSequence?.scenes) return;
+  for (const scene of store.currentSequence.scenes) {
+    try {
+      const response = await axios.get(`/api/scene-commentaires/scene/${scene.idScene}/count`);
+      sceneCommentCounts.value[scene.idScene] = response.data;
+    } catch (error) {
+      console.error('Erreur lors du chargement du nombre de commentaires pour la scène:', error);
+      sceneCommentCounts.value[scene.idScene] = 0;
+    }
+  }
+};
+
+const addSceneComment = async () => {
+  if (!newSceneComment.value.trim() || !selectedScene.value) return;
+  try {
+    await axios.post('/api/scene-commentaires', {
+      contenu: newSceneComment.value,
+      sceneId: selectedScene.value.idScene
+    }, {
+      headers: {
+        'X-User-Id': user.value.id
+      }
+    });
+    newSceneComment.value = '';
+    await loadSceneComments(selectedScene.value.idScene);
+    await loadSceneCommentCounts();
+  } catch (error) {
+    console.error('Erreur lors de l\'ajout du commentaire:', error);
+    alert('Erreur lors de l\'ajout du commentaire');
+  }
+};
+
+const deleteSceneComment = async (commentId) => {
+  if (confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
+    try {
+      await axios.delete(`/api/scene-commentaires/${commentId}`);
+      await loadSceneComments(selectedScene.value.idScene);
+      await loadSceneCommentCounts();
+    } catch (error) {
+      console.error('Erreur lors de la suppression du commentaire:', error);
+    }
+  }
+};
+
+// Méthode utilitaire pour formater les dates
+const formatDate = (date) => {
+  return new Date(date).toLocaleString();
+};
+
+const goToNextPage = () => store.goToNextPage();
+const goToPrevPage = () => store.goToPrevPage();
+const retryFetch = () => store.fetchEpisodes(store.projetId || '1');
+
+const currentEpisode = computed(() => store.currentEpisode);
+const currentSequence = computed(() => store.currentSequence);
+const error = computed(() => store.error);
+const isLoading = computed(() => store.isLoading);
+
+// Charger les compteurs de commentaires quand la séquence change
+watch(() => store.currentSequence, async (newSequence) => {
+  if (newSequence) {
+    await loadSequenceCommentCount();
+    await loadSceneCommentCounts();
+  }
+});
+</script>
+
