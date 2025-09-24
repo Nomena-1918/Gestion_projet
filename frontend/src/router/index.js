@@ -173,7 +173,7 @@ const routes = [
     props: true,
   },
   {
-    path: '/scene/:sceneId/add-comedien-ecran-travail',
+    path: '/projet/:projetId/add-comedien-ecran-travail',
     name: 'Add_comedien_ecran_travail',
     component: Add_comedien_ecran_travail,
     props: true,
