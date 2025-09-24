@@ -1,3 +1,4 @@
+
 <template>
   <div class="creation-personnage">
     <h2>Création et Gestion des Personnages</h2>
@@ -72,10 +73,18 @@
               @focus="showComedienSuggestions = true"
               @blur="hideComedienSuggestions"
               @input="filterComediens"
-              :placeholder="formData.comedienId ? getComedienName(formData.comedienId) : 'Rechercher un comédien...'"
-              required
+              :placeholder="formData.comedienId ? getComedienName(formData.comedienId) : 'Rechercher un comédien (optionnel)...'"
               class="combobox-input"
             />
+            <button
+              type="button"
+              v-if="formData.comedienId"
+              @click="clearComedien"
+              class="clear-button"
+              title="Supprimer le comédien"
+            >
+              ×
+            </button>
             <ul v-if="showComedienSuggestions && filteredComediens.length" class="suggestions-list">
               <li
                 v-for="comedien in filteredComediens"
@@ -111,56 +120,6 @@
         </div>
       </form>
     </div>
-
-    <!-- Liste des personnages -->
-    <div class="personnages-list">
-      <h3>Liste des personnages</h3>
-      
-      <div v-if="loading" class="loading">Chargement...</div>
-      
-      <div v-else-if="personnages.length === 0" class="empty-state">
-        Aucun personnage créé pour le moment.
-      </div>
-
-      <div v-else class="personnages-grid">
-        <div
-          v-for="personnage in personnages"
-          :key="personnage.id"
-          class="personnage-card"
-        >
-          <div class="personnage-header">
-            <h4>{{ personnage.nom }}</h4>
-            <div class="actions">
-              <button
-                @click="editPersonnage(personnage)"
-                class="btn-edit"
-                title="Modifier"
-              >
-                ✏️
-              </button>
-              <button
-                @click="deletePersonnage(personnage.id)"
-                class="btn-delete"
-                title="Supprimer"
-              >
-                🗑️
-              </button>
-            </div>
-          </div>
-          
-          <div class="personnage-details">
-            <p><strong>Projet:</strong> {{ personnage.projetTitre }}</p>
-            <p><strong>Comédien:</strong> {{ personnage.comedienNom }}</p>
-            <p v-if="personnage.description">
-              <strong>Description:</strong> {{ personnage.description }}
-            </p>
-            <p class="date-info">
-              Créé le: {{ formatDate(personnage.creeLe) }}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -175,7 +134,7 @@ export default {
         nom: '',
         description: '',
         projetId: '',
-        comedienId: ''
+        comedienId: null
       },
       projets: [],
       comediens: [],
@@ -190,25 +149,26 @@ export default {
       showProjetSuggestions: false,
       showComedienSuggestions: false,
       filteredProjets: [],
-      filteredComediens: []
+      filteredComediens: [],
+      currentProjetId: null
     };
   },
   async mounted() {
     await this.loadProjets();
     await this.loadComediens();
+    const projetId = this.$route.params.projetId || this.$route.params.id || this.$route.query.projetId;
+    if (projetId) {
+      this.currentProjetId = projetId;
+      this.formData.projetId = projetId;
+      this.fetchProjetDetails(projetId);  // Pré-remplit le nom
+    } else {
+      // Optionnel : Erreur si pas d'ID (mais garde la combobox active)
+      console.warn('ID du projet non spécifié ; utilisation de la recherche manuelle.');
+    }
     await this.loadPersonnages();
     // Initialiser les listes filtrées
     this.filteredProjets = [...this.projets];
     this.filteredComediens = [...this.comediens];
-    
-    const projetId = this.$route.params.projetId || this.$route.params.id || this.$route.query.projetId;
-  if (projetId) {
-    this.formData.projetId = projetId;
-    this.fetchProjetDetails(projetId);  // Pré-remplit le nom
-  } else {
-    // Optionnel : Erreur si pas d'ID (mais garde la combobox active)
-    console.warn('ID du projet non spécifié ; utilisation de la recherche manuelle.');
-  }
   },
   
   watch: {
@@ -231,9 +191,7 @@ export default {
     try {
       const response = await axios.get(`/api/projets/${projetId}`);
       const projet = response.data;
-      this.projetSearch = `${projet.titre} (${projet.genreNom || 'Inconnu'})`;  // Pré-remplit l'input
-      // Optionnel : Stocke le projet complet si besoin pour getProjetName
-      this.selectedProjet = projet;  // Ajoute une data 'selectedProjet: null' si nécessaire
+      this.projetSearch = projet.titre;  // Pré-remplit l'input
     } catch (error) {
       console.error('Erreur lors du chargement du projet:', error);
       // Gère l'erreur, ex. this.errorMessage = 'Erreur de chargement du projet.';
@@ -244,7 +202,7 @@ export default {
   selectProjet(projet) {
     if (!this.formData.projetId) {  // Seulement si non pré-rempli
       this.formData.projetId = projet.id;
-      this.projetSearch = `${projet.titre} (${projet.genreNom})`;
+      this.projetSearch = projet.titre;
       this.showProjetSuggestions = false;
     }
   },
@@ -271,7 +229,11 @@ export default {
     async loadPersonnages() {
       this.loading = true;
       try {
-        const response = await axios.get('/api/personnages');
+        let url = '/api/personnages';
+        if (this.currentProjetId) {
+          url += `?projetId=${this.currentProjetId}`;
+        }
+        const response = await axios.get(url);
         this.personnages = response.data;
       } catch (error) {
         console.error('Erreur lors du chargement des personnages:', error);
@@ -307,7 +269,7 @@ export default {
         nom: personnage.nom,
         description: personnage.description || '',
         projetId: personnage.projetId,
-        comedienId: personnage.comedienId
+        comedienId: personnage.comedienId || null
       };
       this.isEditing = true;
       this.editingId = personnage.id;
@@ -335,10 +297,10 @@ export default {
       this.formData = {
         nom: '',
         description: '',
-        projetId: '',
-        comedienId: ''
+        projetId: this.currentProjetId || '',
+        comedienId: null
       };
-      this.projetSearch = '';
+      this.projetSearch = this.currentProjetId ? this.getProjetName(this.currentProjetId) : '';
       this.comedienSearch = '';
       this.isEditing = false;
       this.editingId = null;
@@ -384,15 +346,15 @@ export default {
       );
     },
 
-    selectProjet(projet) {
-      this.formData.projetId = projet.id;
-      this.projetSearch = projet.titre;
-      this.showProjetSuggestions = false;
-    },
-
     selectComedien(comedien) {
       this.formData.comedienId = comedien.id;
       this.comedienSearch = `${comedien.nom} (${comedien.age} ans)`;
+      this.showComedienSuggestions = false;
+    },
+
+    clearComedien() {
+      this.formData.comedienId = null;
+      this.comedienSearch = '';
       this.showComedienSuggestions = false;
     },
 
@@ -416,6 +378,7 @@ export default {
     },
 
     getComedienName(id) {
+      if (!id) return '';
       const comedien = this.comediens.find(c => c.id === id);
       return comedien ? `${comedien.nom} (${comedien.age} ans)` : '';
     }
@@ -493,6 +456,7 @@ textarea {
 .combobox-input {
   width: 100%;
   box-sizing: border-box;
+  padding-right: 30px; /* Espace pour le bouton si présent */
 }
 
 .suggestions-list {
@@ -680,5 +644,26 @@ textarea {
     width: 100%;
   }
 }
-</style>
 
+.clear-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-button:hover {
+  background: #ee5253;
+}
+</style>
