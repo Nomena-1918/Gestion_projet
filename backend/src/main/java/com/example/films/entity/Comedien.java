@@ -20,6 +20,10 @@ public class Comedien {
     @Column(name = "id_comedien")
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_projet", nullable = false)
+    private Projet projet;
+
     @Column(name = "nom_comedien", nullable = false)
     private String nom;
 

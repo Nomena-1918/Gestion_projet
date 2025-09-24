@@ -5,8 +5,11 @@ import com.example.films.dto.CreateComedienDTO;
 import com.example.films.dto.DisponibiliteDTO;
 import com.example.films.entity.Comedien;
 import com.example.films.entity.DisponibiliteComedien;
+import com.example.films.entity.Projet;
 import com.example.films.repository.ComedienRepository;
 import com.example.films.repository.DisponibiliteComedienRepository;
+import com.example.films.repository.ProjetRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,12 +28,15 @@ import java.util.stream.Collectors;
 public class ComedienService {
     private final ComedienRepository comedienRepository;
     private final DisponibiliteComedienRepository disponibiliteRepository;
-     private final String uploadDir = "assets/photos/";
+    private final ProjetRepository projetRepository; 
+    private final String uploadDir = "assets/photos/";
 
      public ComedienService(ComedienRepository comedienRepository, 
-                         DisponibiliteComedienRepository disponibiliteRepository) {
+                         DisponibiliteComedienRepository disponibiliteRepository,
+                         ProjetRepository projetRepository) {
         this.comedienRepository = comedienRepository;
         this.disponibiliteRepository = disponibiliteRepository;
+        this.projetRepository = projetRepository;
         
         // Créer le répertoire s'il n'existe pas
         try {
@@ -47,8 +53,13 @@ public class ComedienService {
             throw new RuntimeException("Un comédien avec cet email existe déjà");
         }
 
+        // Récupérer le projet
+        Projet projet = projetRepository.findById(createComedienDTO.getProjetId())
+                .orElseThrow(() -> new RuntimeException("Projet non trouvé"));
+
         // Créer le comédien
         Comedien comedien = new Comedien();
+        comedien.setProjet(projet);
         comedien.setNom(createComedienDTO.getNom());
         comedien.setAge(createComedienDTO.getAge());
         comedien.setEmail(createComedienDTO.getEmail());
@@ -67,6 +78,13 @@ public class ComedienService {
         }
 
         return convertToDTO(savedComedien);
+    }
+
+     public List<ComedienDTO> getComediensByProjet(Long projetId) {
+        List<Comedien> comediens = comedienRepository.findByProjetIdWithDisponibilites(projetId);
+        return comediens.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
         public String savePhoto(MultipartFile file) throws IOException {
@@ -113,27 +131,73 @@ public class ComedienService {
         return convertToDTO(comedien);
     }
 
-    @Transactional
-    public ComedienDTO updateComedien(Long id, CreateComedienDTO updateComedienDTO) {
-        Comedien comedien = comedienRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Comédien non trouvé"));
+        @Transactional
+        public ComedienDTO updateComedien(Long id, CreateComedienDTO updateComedienDTO) {
+            Comedien comedien = comedienRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Comédien non trouvé"));
 
-        // Vérifier si l'email est déjà utilisé par un autre comédien
-        if (!comedien.getEmail().equals(updateComedienDTO.getEmail()) &&
-            comedienRepository.findByEmail(updateComedienDTO.getEmail()).isPresent()) {
-            throw new RuntimeException("Un autre comédien utilise déjà cet email");
+            // Vérifier si l'email est déjà utilisé par un autre comédien
+            if (updateComedienDTO.getEmail() != null && 
+                !comedien.getEmail().equals(updateComedienDTO.getEmail()) &&
+                comedienRepository.findByEmail(updateComedienDTO.getEmail()).isPresent()) {
+                throw new RuntimeException("Un autre comédien utilise déjà cet email");
+            }
+
+            // Mettre à jour seulement les champs non-nulls
+            if (updateComedienDTO.getNom() != null) {
+                comedien.setNom(updateComedienDTO.getNom());
+            }
+            if (updateComedienDTO.getAge() != null) {
+                comedien.setAge(updateComedienDTO.getAge());
+            }
+            if (updateComedienDTO.getEmail() != null) {
+                comedien.setEmail(updateComedienDTO.getEmail());
+            }
+            if (updateComedienDTO.getPhotoPath() != null) {
+                // Supprimer l'ancienne photo si elle existe
+                if (comedien.getPhotoPath() != null) {
+                    try {
+                        deletePhoto(comedien.getPhotoPath());
+                    } catch (IOException e) {
+                        System.err.println("Erreur lors de la suppression de l'ancienne photo: " + e.getMessage());
+                    }
+                }
+                comedien.setPhotoPath(updateComedienDTO.getPhotoPath());
+            }
+
+            Comedien updatedComedien = comedienRepository.save(comedien);
+            
+            // Gérer la disponibilité si fournie
+            if (updateComedienDTO.getDateDisponibilite() != null && 
+                updateComedienDTO.getStatutDisponibilite() != null) {
+                updateOrCreateDisponibilite(comedien, updateComedienDTO.getDateDisponibilite(), updateComedienDTO.getStatutDisponibilite());
+            }
+
+            return convertToDTO(updatedComedien);
         }
 
-        comedien.setNom(updateComedienDTO.getNom());
-        comedien.setAge(updateComedienDTO.getAge());
-        comedien.setEmail(updateComedienDTO.getEmail());
-        comedien.setPhotoPath(updateComedienDTO.getPhotoPath());
+      @Transactional
+private void updateOrCreateDisponibilite(Comedien comedien, LocalDate date, String statut) {
+    
+    List<DisponibiliteComedien> disponibilites = disponibiliteRepository.findByComedienId(comedien.getId());
+    
+    Optional<DisponibiliteComedien> existingDisponibilite = disponibilites.stream().findFirst();
 
-        Comedien updatedComedien = comedienRepository.save(comedien);
-        return convertToDTO(updatedComedien);
+    if (existingDisponibilite.isPresent()) {
+        // Mettre à jour la disponibilité existante
+        DisponibiliteComedien disponibilite = existingDisponibilite.get();
+        disponibilite.setDate(date);
+        disponibilite.setStatut(statut);
+        disponibiliteRepository.save(disponibilite);
+    } else {
+        // Créer une nouvelle disponibilité
+        DisponibiliteComedien newDisponibilite = new DisponibiliteComedien();
+        newDisponibilite.setComedien(comedien);
+        newDisponibilite.setDate(date);
+        newDisponibilite.setStatut(statut);
+        disponibiliteRepository.save(newDisponibilite);
     }
-
-
+}
     @Transactional
    public void deleteComedien(Long id) {
         Comedien comedien = comedienRepository.findById(id)
@@ -204,7 +268,7 @@ public class ComedienService {
         disponibiliteRepository.delete(disponibilite);
     }
 
-       private ComedienDTO convertToDTO(Comedien comedien) {
+    private ComedienDTO convertToDTO(Comedien comedien) {
         ComedienDTO dto = new ComedienDTO();
         dto.setId(comedien.getId());
         dto.setNom(comedien.getNom());
@@ -213,6 +277,12 @@ public class ComedienService {
         dto.setPhotoPath(comedien.getPhotoPath());
         dto.setCreeLe(comedien.getCreeLe());
         dto.setModifieLe(comedien.getModifieLe());
+
+        // Ajouter les informations du projet
+        if (comedien.getProjet() != null) {
+            dto.setProjetId(comedien.getProjet().getId());
+            dto.setProjetTitre(comedien.getProjet().getTitre());
+        }
 
         // Convertir les disponibilités
         if (comedien.getDisponibilites() != null) {
@@ -234,4 +304,3 @@ private DisponibiliteDTO convertDisponibiliteToDTO(DisponibiliteComedien disponi
         return dto;
     }
 }
-

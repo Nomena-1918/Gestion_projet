@@ -5,6 +5,7 @@ import java.time.LocalDate;
 
 @Data
 public class CreateComedienDTO {
+    private Long projetId;
     private String nom;
     private Integer age;
     private String email;

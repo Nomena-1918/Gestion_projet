@@ -8,6 +8,8 @@ import java.util.List;
 public class ComedienDTO {
     private Long id;
     private String nom;
+     private Long projetId;
+    private String projetTitre;
     private Integer age;
     private String email;
     private String photoPath;
