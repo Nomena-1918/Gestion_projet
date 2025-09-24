@@ -1535,18 +1535,20 @@ const goToAddDialogue = (sceneId) => {
   router.push(`/scene/${sceneId}/add-dialogue-scene-ecran-travail`);
 };
 
-const goToAddComedien = (sceneId) => {
-  router.push(`/scene/${sceneId}/add-comedien-ecran-travail`);
+const goToAddComedien = () => {
+  
+  const projetIdToUse = projetId.value || store.projetId || route.params.idProjet;
+  
+  if (!projetIdToUse) {
+    console.error('ID du projet non trouvé !');
+    alert('ID du projet manquant. Veuillez réessayer.');
+    return;
+  }
+  
+  console.log('Navigation vers création comédien avec projet ID:', projetIdToUse);
+  router.push(`/projet/${projetIdToUse}/add-comedien-ecran-travail`);
 };
 
-// const goToAddComedien = () => {
-//   if (!projetId.value) {
-//     console.error('ID du projet non trouvé !');
-//     alert('ID du projet manquant. Veuillez réessayer.');
-//     return;
-//   }
-//   router.push(`/projet/${projetId.value}/add-comedien-ecran-travail`);
-// };
 const goToAddLieu = () => {
   // Priorité 1: ID du projet depuis les paramètres de route
   if (route.params.idProjet) {
