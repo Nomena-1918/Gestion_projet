@@ -1,7 +1,5 @@
 <template>
   <div class="scene-comedien-container">
-    
-
     <!-- Contenu principal -->
     <main class="main-content">
       <div class="page-header">
@@ -67,7 +65,7 @@
       </div>
 
       <!-- Liste des associations -->
-      <div class="liaisons-list">
+  <div class="liaisons-list">
         <h3>Associations Comédien-Scène</h3>
         
         <div class="filters">
@@ -76,24 +74,33 @@
           </div>
         </div>
 
-        <div class="liaisons-grid">
-          <div v-for="liaison in filteredLiaisons" :key="liaison.id" class="liaison-card">
-            <div class="liaison-header">
-              <h4>{{ liaison.comedienNom }}</h4>
-              <div class="liaison-actions">
-                <span class="icon-delete" @click="deleteLiaison(liaison.id)">🗑️</span>
+        <!-- Groupement par comédien -->
+        <div class="comedien-group" v-for="comedien in groupedLiaisons" :key="comedien.id">
+          <div class="comedien-header">
+            <h4>{{ comedien.nom }}</h4>
+            <span class="scene-count">{{ comedien.scenes.length }} scène(s)</span>
+          </div>
+          
+          <div class="scenes-container">
+            <div v-for="scene in comedien.scenes" :key="scene.id" class="scene-card">
+              <div class="scene-info">
+                <p><strong>Scène:</strong> {{ scene.sceneTitre }}</p>
+                <p><strong>Séquence:</strong> {{ scene.sequenceTitre }}</p>
+                <p><strong>Statut:</strong> {{ scene.sceneStatut }}</p>
+                <p><strong>Créé le:</strong> {{ formatDate(scene.creeLe) }}</p>
               </div>
-            </div>
-            
-            <div class="liaison-info">
-              <p><strong>Scène:</strong> {{ liaison.sceneTitre }}</p>
-              <p><strong>Séquence:</strong> {{ liaison.sequenceTitre }}</p>
-              <p><strong>Statut:</strong> {{ liaison.sceneStatut }}</p>
-              <p><strong>Créé le:</strong> {{ formatDate(liaison.creeLe) }}</p>
+              <div class="scene-actions">
+                <button @click="deleteLiaison(scene.id)" class="btn-delete-scene" title="Supprimer">
+                  🗑️
+                </button>
+              </div>
+            </div>  
             </div>
           </div>
+            <div v-if="groupedLiaisons.length === 0" class="empty-state">
+            Aucune association comédien-scène trouvée.
+            </div>
         </div>
-      </div>
     </main>
   </div>
 </template>
@@ -138,8 +145,26 @@ export default {
     selectedComedienName() {
       if (!this.selectedComedien) return 'Chargement...';
       return `${this.selectedComedien.nom} (${this.selectedComedien.email})`;
-    }
-  },
+    },
+    groupedLiaisons() {
+    const grouped = {};
+    
+    this.filteredLiaisons.forEach(liaison => {
+      if (!grouped[liaison.idComedien]) {
+        grouped[liaison.idComedien] = {
+          id: liaison.idComedien,
+          nom: liaison.comedienNom,
+          scenes: []
+        };
+      }
+      grouped[liaison.idComedien].scenes.push(liaison);
+    });
+    
+    return Object.values(grouped);
+  }
+},
+ 
+  
   async created() {
     axios.defaults.baseURL = API_BASE_URL;
     
@@ -656,6 +681,115 @@ export default {
   
   .filter-group input {
     width: 100%;
+  }
+}
+.comedien-group {
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.comedien-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.comedien-header h4 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.scene-count {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.scenes-container {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.scene-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.scene-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.scene-info {
+  flex: 1;
+}
+
+.scene-info p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.scene-actions {
+  margin-left: 1rem;
+}
+
+.btn-delete-scene {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.btn-delete-scene:hover {
+  background: #ee5253;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .scenes-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .comedien-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .scene-card {
+    flex-direction: column;
+  }
+  
+  .scene-actions {
+    margin-left: 0;
+    margin-top: 1rem;
+    align-self: flex-end;
   }
 }
 </style>
