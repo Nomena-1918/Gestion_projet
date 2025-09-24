@@ -14,7 +14,7 @@
       <h3>{{ isEditing ? 'Modifier' : 'Créer' }} un comédien</h3>
       <form @submit.prevent="submitForm" class="comedien-form" enctype="multipart/form-data">
         <div class="form-group">
-          <label for="nom">Nom du comédien *</label>
+          <label for="nom">Nom du comédien olalala</label>
           <input
             type="text"
             id="nom"
