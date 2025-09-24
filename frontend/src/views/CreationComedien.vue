@@ -38,6 +38,33 @@
           />
         </div>
 
+        <!-- Sélection du projet avec recherche -->
+        <div class="form-group">
+          <label for="projetSearch">Projet *</label>
+          <div class="search-container">
+            <input
+              type="text"
+              id="projetSearch"
+              v-model="projetSearch"
+              @input="filterProjets"
+              @focus="showProjetSuggestions = true"
+              placeholder="Rechercher un projet..."
+              class="search-input"
+            />
+            <div v-if="showProjetSuggestions && filteredProjets.length > 0" class="suggestions-dropdown">
+              <div
+                v-for="projet in filteredProjets"
+                :key="projet.id"
+                @click="selectProjet(projet)"
+                class="suggestion-item"
+              >
+                {{ projet.titre }}
+              </div>
+            </div>
+          </div>
+          <input type="hidden" v-model="formData.projetId" required />
+        </div>
+
         <div class="form-group">
           <label for="photo">Photo</label>
           <div class="photo-upload">
@@ -58,6 +85,43 @@
               <button type="button" @click="removePhoto" class="remove-photo-btn">×</button>
             </div>
           </div>
+        </div>
+
+        <!-- Section Disponibilités -->
+        <div class="form-group disponibilites-section">
+          <label>Disponibilités</label>
+          <div class="disponibilites-list">
+            <div v-for="(dispo, index) in formData.disponibilites" :key="index" class="disponibilite-item">
+              <div class="disponibilite-inputs">
+                <input
+                  type="date"
+                  v-model="dispo.date"
+                  class="date-input"
+                  placeholder="Date"
+                />
+                <select v-model="dispo.statut" class="statut-select">
+                  <option value="DISPONIBLE">Disponible</option>
+                  <option value="INDISPONIBLE">Indisponible</option>
+                  <option value="OCCUPE">Occupé</option>
+                </select>
+                <button
+                  type="button"
+                  @click="removeDisponibilite(index)"
+                  class="remove-dispo-btn"
+                  title="Supprimer"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            @click="addDisponibilite"
+            class="btn-add-dispo"
+          >
+            + Ajouter une disponibilité
+          </button>
         </div>
 
         <div class="form-actions">
@@ -82,17 +146,62 @@
 
     <!-- Liste des comédiens -->
     <div class="comediens-list">
-      <h3>Liste des comédiens</h3>
+      <div class="list-header">
+        <h3>Liste des comédiens</h3>
+        
+        <!-- Zone de recherche des comédiens -->
+        <div class="search-section">
+          <div class="search-group">
+            <label for="comedienSearch">Rechercher un comédien</label>
+            <input
+              type="text"
+              id="comedienSearch"
+              v-model="comedienSearch"
+              @input="filterComediens"
+              placeholder="Rechercher par nom, email ou projet..."
+              class="search-input"
+            />
+          </div>
+          
+          <!-- Filtres supplémentaires -->
+          <div class="filters-group">
+            <div class="filter-item">
+              <label for="projetFilter">Filtrer par projet</label>
+              <select id="projetFilter" v-model="selectedProjetFilter" @change="filterComediens" class="filter-select">
+                <option value="">Tous les projets</option>
+                <option v-for="projet in projets" :key="projet.id" :value="projet.id">
+                  {{ projet.titre }}
+                </option>
+              </select>
+            </div>
+            
+            <div class="filter-item">
+              <label for="statutFilter">Filtrer par statut</label>
+              <select id="statutFilter" v-model="selectedStatutFilter" @change="filterComediens" class="filter-select">
+                <option value="">Tous les statuts</option>
+                <option value="DISPONIBLE">Disponible</option>
+                <option value="INDISPONIBLE">Indisponible</option>
+                <option value="OCCUPE">Occupé</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
       
       <div v-if="loading" class="loading">Chargement...</div>
       
-      <div v-else-if="comediens.length === 0" class="empty-state">
-        Aucun comédien créé pour le moment.
+      <div v-else-if="filteredComediens.length === 0" class="empty-state">
+        <div v-if="comedienSearch || selectedProjetFilter || selectedStatutFilter">
+          Aucun comédien ne correspond à vos critères de recherche.
+        </div>
+        <div v-else>
+          Aucun comédien créé pour le moment.
+        </div>
       </div>
 
       <div v-else class="comediens-grid">
         <div
-          v-for="comedien in comediens"
+          v-for="comedien in filteredComediens"
           :key="comedien.id"
           class="comedien-card"
         >
@@ -110,6 +219,20 @@
             <h4>{{ comedien.nom }}</h4>
             <p><strong>Âge:</strong> {{ comedien.age }} ans</p>
             <p><strong>Email:</strong> {{ comedien.email }}</p>
+            <p><strong>Projet:</strong> {{ comedien.projetTitre || 'Non assigné' }}</p>
+            
+            <!-- Affichage des disponibilités -->
+            <div v-if="comedien.disponibilites && comedien.disponibilites.length > 0" class="disponibilites-display">
+              <strong>Disponibilités:</strong>
+              <div v-for="dispo in comedien.disponibilites" :key="dispo.id" class="dispo-item">
+                <span class="dispo-date">{{ formatDateSimple(dispo.date) }}</span>
+                <span class="dispo-statut" :class="getStatutClass(dispo.statut)">
+                  {{ getStatutText(dispo.statut) }}
+                </span>
+              </div>
+            </div>
+            <p v-else class="no-disponibilites">Aucune disponibilité définie</p>
+            
             <p class="date-info">
               Créé le: {{ formatDate(comedien.creeLe) }}
             </p>
@@ -123,6 +246,13 @@
             >
               ✏️
             </button>
+             <button
+                @click="goToSceneComedien(comedien.id)"
+                class="btn-link"
+                title="Lier à une scène"
+              >
+                🎬
+              </button>
             <button
               @click="deleteComedien(comedien.id)"
               class="btn-delete"
@@ -148,32 +278,104 @@ export default {
         nom: '',
         age: null,
         email: '',
-        photo: null
+        projetId: '',
+        photo: null,
+        disponibilites: []
       },
       comediens: [],
+      filteredComediens: [],
+      projets: [],
+      filteredProjets: [],
       isEditing: false,
       editingId: null,
       isSubmitting: false,
       loading: false,
       previewPhoto: null,
-      currentPhotoFile: null
+      currentPhotoFile: null,
+      
+      // Recherche et filtres
+      projetSearch: '',
+      showProjetSuggestions: false,
+      comedienSearch: '',
+      selectedProjetFilter: '',
+      selectedStatutFilter: ''
     };
   },
   async mounted() {
+    await this.loadProjets();
     await this.loadComediens();
   },
   methods: {
+    async loadProjets() {
+      try {
+        const response = await axios.get('/api/projets');
+        this.projets = response.data;
+        this.filteredProjets = this.projets;
+      } catch (error) {
+        console.error('Erreur lors du chargement des projets:', error);
+      }
+    },
+
     async loadComediens() {
       this.loading = true;
       try {
         const response = await axios.get('/api/comediens');
         this.comediens = response.data;
+        this.filteredComediens = this.comediens;
       } catch (error) {
         console.error('Erreur lors du chargement des comédiens:', error);
         alert('Erreur lors du chargement des comédiens');
       } finally {
         this.loading = false;
       }
+    },
+
+    filterProjets() {
+      if (this.projetSearch.trim() === '') {
+        this.filteredProjets = this.projets;
+      } else {
+        const searchTerm = this.projetSearch.toLowerCase();
+        this.filteredProjets = this.projets.filter(projet =>
+          projet.titre.toLowerCase().includes(searchTerm)
+        );
+      }
+    },
+
+    selectProjet(projet) {
+      this.formData.projetId = projet.id;
+      this.projetSearch = projet.titre;
+      this.showProjetSuggestions = false;
+    },
+
+    filterComediens() {
+      let filtered = this.comediens;
+
+      // Filtre par recherche texte
+      if (this.comedienSearch.trim() !== '') {
+        const searchTerm = this.comedienSearch.toLowerCase();
+        filtered = filtered.filter(comedien =>
+          comedien.nom.toLowerCase().includes(searchTerm) ||
+          comedien.email.toLowerCase().includes(searchTerm) ||
+          (comedien.projetTitre && comedien.projetTitre.toLowerCase().includes(searchTerm))
+        );
+      }
+
+      // Filtre par projet
+      if (this.selectedProjetFilter !== '') {
+        filtered = filtered.filter(comedien => 
+          comedien.projetId == this.selectedProjetFilter
+        );
+      }
+
+      // Filtre par statut de disponibilité
+      if (this.selectedStatutFilter !== '') {
+        filtered = filtered.filter(comedien =>
+          comedien.disponibilites && 
+          comedien.disponibilites.some(dispo => dispo.statut === this.selectedStatutFilter)
+        );
+      }
+
+      this.filteredComediens = filtered;
     },
 
     getPhotoUrl(photoPath) {
@@ -200,16 +402,41 @@ export default {
       this.$refs.photoInput.value = '';
     },
 
+    
+
+    addDisponibilite() {
+      this.formData.disponibilites.push({
+        date: '',
+        statut: 'DISPONIBLE'
+      });
+    },
+
+    removeDisponibilite(index) {
+      this.formData.disponibilites.splice(index, 1);
+    },
+
     async submitForm() {
       this.isSubmitting = true;
       try {
         const formData = new FormData();
-        formData.append('nom', this.formData.nom);
-        formData.append('age', this.formData.age);
-        formData.append('email', this.formData.email);
+        
+        // Ajouter seulement les champs qui ont été modifiés
+        if (this.formData.nom) formData.append('nom', this.formData.nom);
+        if (this.formData.age) formData.append('age', this.formData.age);
+        if (this.formData.email) formData.append('email', this.formData.email);
+        if (this.formData.projetId) formData.append('projetId', this.formData.projetId);
         
         if (this.currentPhotoFile) {
           formData.append('photo', this.currentPhotoFile);
+        }
+
+        // Pour l'édition : envoyer seulement la première disponibilité si elle existe
+        if (this.isEditing && this.formData.disponibilites.length > 0) {
+          const firstDispo = this.formData.disponibilites[0];
+          if (firstDispo.date) {
+            formData.append('dateDisponibilite', firstDispo.date);
+            formData.append('statutDisponibilite', firstDispo.statut);
+          }
         }
 
         let response;
@@ -228,7 +455,7 @@ export default {
           });
           alert('Comédien créé avec succès');
         }
-
+        
         this.resetForm();
         await this.loadComediens();
       } catch (error) {
@@ -240,11 +467,18 @@ export default {
     },
 
     editComedien(comedien) {
+      this.originalData = { ...comedien }; // Sauvegarder les données originales
       this.formData = {
         nom: comedien.nom,
         age: comedien.age,
-        email: comedien.email
+        email: comedien.email,
+        projetId: comedien.projetId,
+        disponibilites: comedien.disponibilites ? [...comedien.disponibilites] : []
       };
+      
+      // Mettre à jour la recherche de projet avec le projet actuel
+      const projet = this.projets.find(p => p.id === comedien.projetId);
+      this.projetSearch = projet ? projet.titre : '';
       
       if (comedien.photoPath) {
         this.previewPhoto = this.getPhotoUrl(comedien.photoPath);
@@ -256,7 +490,6 @@ export default {
       this.isEditing = true;
       this.editingId = comedien.id;
       
-      // Scroll to form
       document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
     },
 
@@ -279,13 +512,18 @@ export default {
       this.formData = {
         nom: '',
         age: null,
-        email: ''
+        email: '',
+        projetId: '',
+        photo: null,
+        disponibilites: []
       };
+      this.projetSearch = '';
       this.previewPhoto = null;
       this.currentPhotoFile = null;
       this.isEditing = false;
       this.editingId = null;
       this.$refs.photoInput.value = '';
+      this.showProjetSuggestions = false;
     },
 
     formatDate(dateString) {
@@ -296,7 +534,53 @@ export default {
         hour: '2-digit',
         minute: '2-digit'
       });
+    },
+
+    formatDateSimple(dateString) {
+      return new Date(dateString).toLocaleDateString('fr-FR');
+    },
+
+    getStatutClass(statut) {
+      switch (statut) {
+        case 'DISPONIBLE': return 'statut-disponible';
+        case 'INDISPONIBLE': return 'statut-indisponible';
+        case 'OCCUPE': return 'statut-occupe';
+        default: return '';
+      }
+    },
+
+    getStatutText(statut) {
+      switch (statut) {
+        case 'DISPONIBLE': return 'Disponible';
+        case 'INDISPONIBLE': return 'Indisponible';
+        case 'OCCUPE': return 'Occupé';
+        default: return statut;
+      }
+    },
+    goToSceneComedien(comedienId) {
+      this.$router.push({
+        path: '/scene-comedien',
+        query: { comedienId: comedienId }
+      });
     }
+    
+  },
+
+ 
+  watch: {
+    // Fermer les suggestions quand on clique ailleurs
+    showProjetSuggestions(value) {
+      if (value) {
+        setTimeout(() => {
+          document.addEventListener('click', this.closeProjetSuggestions);
+        }, 100);
+      } else {
+        document.removeEventListener('click', this.closeProjetSuggestions);
+      }
+    }
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.closeProjetSuggestions);
   }
 };
 </script>
@@ -343,7 +627,7 @@ label {
   color: #2c3e50;
 }
 
-input {
+input, select {
   padding: 12px;
   border: 2px solid #ddd;
   border-radius: 6px;
@@ -351,12 +635,100 @@ input {
   transition: border-color 0.3s ease;
 }
 
-input:focus {
+input:focus, select:focus {
   outline: none;
   border-color: #3498db;
 }
 
-/* Styles pour l'upload de photo */
+/* Styles pour la recherche de projets */
+.search-container {
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+}
+
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.suggestion-item {
+  padding: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
+}
+
+.suggestion-item:hover {
+  background-color: #f8f9fa;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+/* Styles pour la recherche des comédiens */
+.list-header {
+  margin-bottom: 20px;
+}
+
+.search-section {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 15px;
+}
+
+.search-group {
+  margin-bottom: 15px;
+}
+
+.search-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.filters-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.filter-item label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.filter-select {
+  width: 100%;
+}
+
+/* Styles responsifs pour les filtres */
+@media (max-width: 768px) {
+  .filters-group {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Styles existants restants... */
+.select-input {
+  width: 100%;
+}
+
 .photo-upload {
   display: flex;
   flex-direction: column;
@@ -416,6 +788,105 @@ input:focus {
   background: #ee5253;
 }
 
+.disponibilites-section {
+  grid-column: 1 / -1;
+}
+
+.disponibilites-list {
+  margin-bottom: 15px;
+}
+
+.disponibilite-item {
+  margin-bottom: 10px;
+}
+
+.disponibilite-inputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.date-input, .statut-select {
+  flex: 1;
+}
+
+.remove-dispo-btn {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-dispo-btn:hover {
+  background: #ee5253;
+}
+
+.btn-add-dispo {
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s ease;
+}
+
+.btn-add-dispo:hover {
+  background: #219a52;
+}
+
+.disponibilites-display {
+  margin-top: 10px;
+}
+
+.dispo-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.dispo-date {
+  font-size: 12px;
+  color: #666;
+}
+
+.dispo-statut {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.statut-disponible {
+  background: #d4edda;
+  color: #155724;
+}
+
+.statut-indisponible {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.statut-occupe {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.no-disponibilites {
+  font-style: italic;
+  color: #888;
+  font-size: 12px;
+}
+
 .form-actions {
   display: flex;
   gap: 15px;
@@ -466,7 +937,7 @@ input:focus {
 
 .comediens-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 20px;
   margin-top: 20px;
 }
@@ -587,5 +1058,28 @@ input:focus {
   .btn-primary, .btn-secondary {
     width: 100%;
   }
+  
+  .disponibilite-inputs {
+    flex-direction: column;
+  }
+  
+  .filters-group {
+    grid-template-columns: 1fr;
+  }
+}
+.btn-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.btn-link:hover {
+  background: #a29bfe;
 }
 </style>
+
+
