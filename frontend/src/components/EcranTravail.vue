@@ -10,15 +10,30 @@
 
         <h2> Épisode {{ currentEpisode?.ordre }} : </h2><br>     
 
-        <div class="title-episode">
-        <label> {{ currentEpisode?.titre || 'Chargement...' }} </label>
+       <div class="title-episode">
+          <label> {{ currentEpisode?.titre || 'Chargement...' }} </label>
 
-        <span class="icon-edit" @click="startEditEpisode" v-if="currentEpisode"><i class="fas fa-pen icon" style="background: none;"></i></span> <br>
+          <!-- Afficher le bouton modifier seulement si l'utilisateur a la permission -->
+          <span v-if="userPermissions.canEditEpisode" class="icon-edit" @click="startEditEpisode">
+            <i class="fas fa-pen icon" style="background: none;"></i>
+          </span> <br>
         </div>
         
         <div class="syno-episode">
-        <label><strong>Synopsis :</strong> {{ currentEpisode?.synopsis || 'Chargement...' }} </label><br>
-        <label><strong>Statut :</strong> {{ currentEpisode?.statutNom || 'Chargement...' }} </label>
+          <label><strong>Synopsis :</strong> {{ currentEpisode?.synopsis || 'Chargement...' }} </label><br>
+          <label><strong>Statut :</strong> {{ currentEpisode?.statutNom || 'Chargement...' }} </label>
+        </div>
+
+        <div class="episode-equipe" v-if="currentEpisode">
+          <div class="equipe-info">
+            <strong>Équipe de l'épisode :</strong>
+            <span v-if="currentEpisode.realisateur" class="realisateur-info">
+              Réalisateur : {{ currentEpisode.realisateur.nom }}
+            </span>
+            <span v-if="currentEpisode.scenariste" class="scenariste-info">
+              Scénariste : {{ currentEpisode.scenariste.nom }}
+            </span>
+          </div>
         </div>
       </header>
 
@@ -45,13 +60,26 @@
         <button class="retry-btn" @click="retryFetch">Réessayer</button>
       </div>
 
+       <!-- Liens de création - Masquer ceux non autorisés -->
       <div class="liens">
-        <button class="add-scene-btn" @click="goToAddEpisode"><i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Episode</button>     
-        <button class="add-scene-btn" @click="goToAddSequence"><i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Séquence</button>
-        <button class="add-scene-btn" @click="goToAddLieu"><i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Lieu</button>
-        <button class="add-scene-btn" @click="goToAddPlateau"><i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Plateau</button>
-        <button class="add-scene-btn" @click="goToAddComedien"><i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Comedien</button>
-        <button class="add-scene-btn" @click="goToAddPersonnage"><i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Personnage</button>
+        <button v-if="userPermissions.canEditEpisode" class="add-scene-btn" @click="goToAddEpisode">
+          <i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Episode
+        </button>     
+        <button v-if="userPermissions.canCreateSequence" class="add-scene-btn" @click="goToAddSequence">
+          <i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Séquence
+        </button>
+        <button v-if="userPermissions.canCreateLieu" class="add-scene-btn" @click="goToAddLieu">
+          <i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Lieu
+        </button>
+        <button v-if="userPermissions.canCreatePlateau" class="add-scene-btn" @click="goToAddPlateau">
+          <i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Plateau
+        </button>
+        <button v-if="userPermissions.canCreateComedien" class="add-scene-btn" @click="goToAddComedien">
+          <i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Comedien
+        </button>
+        <button v-if="userPermissions.canCreatePersonnage" class="add-scene-btn" @click="goToAddPersonnage">
+          <i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Personnage
+        </button>
       </div>
 
       <div class="#">
@@ -78,11 +106,15 @@
       
 
       <!-- Contenu de la séquence -->
-      <main class="sequence-page" v-if="currentSequence && !isLoading">
+       <main class="sequence-page" v-if="currentSequence && !isLoading">
         <h2>
           Séquence 0{{ currentSequence.ordre }} : {{ currentSequence.titre }}
-          <span class="icon-edit" @click="startEditSequence(currentSequence)"><i class="fas fa-pen icon" style="color: #17a2b8;"></i></span>
-          <span class="icon-delete" @click="deleteSequence(currentSequence.idSequence)"><i class="fas fa-trash icon" style="color: #dc3545;"></i></span>
+          <span v-if="userPermissions.canCreateSequence" class="icon-edit" @click="startEditSequence(currentSequence)">
+            <i class="fas fa-pen icon" style="color: #17a2b8;"></i>
+          </span>
+          <span v-if="userPermissions.canCreateSequence" class="icon-delete" @click="deleteSequence(currentSequence.idSequence)">
+            <i class="fas fa-trash icon" style="color: #dc3545;"></i>
+          </span>
           <span class="comment-icon" @click="toggleSequenceCommentSection">
             <h3><i class="fas fa-comments icon" style="color: #21294F;"></i>{{ sequenceCommentCount }}</h3>
           </span>
@@ -120,6 +152,7 @@
             <h3>Scènes</h3>
             <button class="add-scene-btn" @click="goToAddScene"><i class="fas fa-plus-circle icon" style="color: #21294F;"></i> Scène</button>
           </div>
+
 
           <!-- Liste des scènes -->
           <div class="scenes-list">
@@ -708,6 +741,17 @@ const selectedColor = ref(null);
 const availableColors = ref([]);
 const dialogueHighlights = ref({});
 
+const userPermissions = ref({
+    canEditEpisode: false,
+    canCreateSequence: false,
+    canCreateScene: false,
+    canCreateDialogue: false,
+    canCreateLieu: false,
+    canCreatePlateau: false,
+    canCreateComedien: false,
+    canCreatePersonnage: false
+});
+
 // Variables réactives pour validation ordre
 const existingOrders = ref([]);
 const suggestedOrder = ref(null);
@@ -871,6 +915,39 @@ onMounted(async () => {
   }
 });
 
+const checkUserPermissions = async (episodeId) => {
+    if (!user.value) return;
+    
+    try {
+        const response = await axios.get(`/api/episodes/${episodeId}/permissions`, {
+            headers: {
+                'X-User-Id': user.value.id
+            }
+        });
+        
+        userPermissions.value = response.data;
+    } catch (error) {
+        console.error('Erreur lors de la vérification des permissions:', error);
+        // Par défaut, tout à false pour la sécurité
+        Object.keys(userPermissions.value).forEach(key => {
+            userPermissions.value[key] = false;
+        });
+    }
+};
+
+watch(() => store.currentEpisode, async (newEpisode) => {
+    if (newEpisode) {
+        await checkUserPermissions(newEpisode.idEpisode);
+        
+        // Afficher les noms du réalisateur et scénariste
+        if (newEpisode.realisateur) {
+            console.log('Réalisateur:', newEpisode.realisateur.nom);
+        }
+        if (newEpisode.scenariste) {
+            console.log('Scénariste:', newEpisode.scenariste.nom);
+        }
+    }
+});
 
 const loadPersonnages = async () => {
   try {
@@ -1489,6 +1566,10 @@ const goToAddEpisode = async () => {
 };
 
 const goToAddSequence = async () => {
+   if (!userPermissions.value.canCreateSequence) {
+        alert('Vous n\'êtes pas autorisé à créer des séquences pour cet épisode.');
+        return;
+    }
   if (!store.currentEpisode?.idEpisode) {
     console.error('ID de l\'épisode non trouvé !');
     alert('ID de l\'épisode manquant. Veuillez réessayer.');
@@ -1518,6 +1599,10 @@ const goToAddSequence = async () => {
 };
 
 const goToAddScene = () => {
+  if (!userPermissions.value.canCreateScene) {
+        alert('Vous n\'êtes pas autorisé à créer des scènes pour cette séquence.');
+        return;
+    }
   
   const currentUrl = window.location.pathname + window.location.search;
   localStorage.setItem('lastEcranTravailUrl', currentUrl);
@@ -2104,5 +2189,32 @@ const hasPrev = computed(() => store.hasPrev);
   color: #dc3545;
   cursor: pointer;
   padding: 5px;
+}
+.episode-number.accessible {
+    border: 2px solid #4CAF50;
+}
+
+.episode-number:not(.accessible) {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.equipe-info {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+}
+
+.realisateur-info, .scenariste-info {
+    display: block;
+    margin: 5px 0;
+    font-style: italic;
+}
+
+/* Masquer les boutons non autorisés */
+button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 </style>

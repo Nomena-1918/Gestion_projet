@@ -553,6 +553,3 @@ export default {
   }
 }
 </style>
-
-
-npm install @tiptap/vue-3 @tiptap/starter-kit @tiptap/extension-highlight
