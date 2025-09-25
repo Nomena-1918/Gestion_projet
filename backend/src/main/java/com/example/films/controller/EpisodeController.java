@@ -8,7 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/episodes") 
@@ -26,9 +28,9 @@ public class EpisodeController {
     public ResponseEntity<List<EpisodeDTO>> getEpisodesByProjetId(@PathVariable Long projetId, 
                                                                 @RequestHeader(value = "X-User-Id", required = false) Long userId) {
         try {
-            // Vérifier l'accès au projet si nécessaire (seulement si userId est fourni)
-            if (userId != null) {
-                // Logique de vérification d'accès optionnelle
+            // Vérifier l'accès au projet si userId est fourni
+            if (userId != null && !authorizationService.hasAccessToProjet(userId, projetId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
             
             List<EpisodeDTO> episodes = episodeService.getEpisodesByProjetId(projetId);
@@ -37,6 +39,7 @@ public class EpisodeController {
             return ResponseEntity.badRequest().build();
         }
     }
+
 
     
         @GetMapping("/utilisateur/{utilisateurId}")
@@ -49,13 +52,12 @@ public class EpisodeController {
             }
         }
 
-    // Endpoint simple pour récupérer un épisode par son ID
     @GetMapping("/{id}")
     public ResponseEntity<EpisodeDTO> getEpisodeById(@PathVariable Long id, 
-                                               @RequestHeader("X-User-Id") Long userId) {
+                                            @RequestHeader("X-User-Id") Long userId) {
         try {
-            // Vérifier l'accès
-            if (!authorizationService.hasAccessToEpisode(userId, id)) {
+            // Vérifier l'accès en lecture (moins restrictif)
+            if (!authorizationService.hasReadAccessToEpisode(userId, id)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
             
@@ -81,6 +83,32 @@ public class EpisodeController {
         @PathVariable Integer order) {
         boolean exists = episodeService.orderExists(projetId, order);
         return ResponseEntity.ok(!exists); // true si disponible
+    }
+
+    @GetMapping("/{id}/permissions")
+    public ResponseEntity<Map<String, Boolean>> getEpisodePermissions(@PathVariable Long id,
+                                                                    @RequestHeader("X-User-Id") Long userId) {
+        try {
+            Map<String, Boolean> permissions = new HashMap<>();
+            
+            // Vérifier l'accès de base
+            boolean hasAccess = authorizationService.hasAccessToEpisode(userId, id);
+            boolean hasReadAccess = authorizationService.hasReadAccessToEpisode(userId, id);
+            
+            permissions.put("canEditEpisode", hasAccess);
+            permissions.put("canCreateSequence", hasAccess);
+            permissions.put("canCreateScene", hasAccess);
+            permissions.put("canCreateDialogue", hasAccess);
+            permissions.put("canCreateLieu", hasAccess);
+            permissions.put("canCreatePlateau", hasAccess);
+            permissions.put("canCreateComedien", hasAccess);
+            permissions.put("canCreatePersonnage", hasAccess);
+            permissions.put("canViewEpisode", hasReadAccess);
+            
+            return ResponseEntity.ok(permissions);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PutMapping("/{id}")
@@ -115,4 +143,5 @@ public class EpisodeController {
             return ResponseEntity.notFound().build();
         }
     }
+
 }

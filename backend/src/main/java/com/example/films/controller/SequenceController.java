@@ -2,6 +2,7 @@ package com.example.films.controller;
 
 import com.example.films.dto.CreateSequenceDTO;
 import com.example.films.dto.SequenceDTO;
+import com.example.films.service.AuthorizationService;
 import com.example.films.service.SequenceService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,16 +14,31 @@ import java.util.List;
 @RequestMapping("/sequences")
 public class SequenceController {
     private final SequenceService sequenceService;
+    private final AuthorizationService authorizationService;
+  
 
-    public SequenceController(SequenceService sequenceService) {
+    public SequenceController(SequenceService sequenceService, 
+                              AuthorizationService authorizationService) {
+    
         this.sequenceService = sequenceService;
+         this.authorizationService = authorizationService; 
     }
 
-    @GetMapping("/episodes/{episodeId}")
-    public List<SequenceDTO> getSequencesByEpisodeId(@PathVariable Long episodeId) {
-        return sequenceService.getSequencesByEpisodeId(episodeId);
+   @GetMapping("/episodes/{episodeId}")
+    public ResponseEntity<List<SequenceDTO>> getSequencesByEpisodeId(@PathVariable Long episodeId,
+                                                                @RequestHeader("X-User-Id") Long userId) {
+        try {
+            // Vérifier l'accès en lecture à l'épisode
+            if (!authorizationService.hasReadAccessToEpisode(userId, episodeId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
+            List<SequenceDTO> sequences = sequenceService.getSequencesByEpisodeId(episodeId);
+            return ResponseEntity.ok(sequences);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
-
     @GetMapping("/{id}")
     public ResponseEntity<SequenceDTO> getSequenceById(@PathVariable Long id) {
         try {
@@ -34,8 +50,15 @@ public class SequenceController {
     }
 
     @PostMapping("/episodes/{episodeId}")
-    public ResponseEntity<SequenceDTO> createSequence(@PathVariable Long episodeId, @RequestBody CreateSequenceDTO createSequenceDTO) {
+    public ResponseEntity<SequenceDTO> createSequence(@PathVariable Long episodeId, 
+                                                    @RequestBody CreateSequenceDTO createSequenceDTO,
+                                                    @RequestHeader("X-User-Id") Long userId) {
         try {
+            // Vérifier que l'utilisateur a accès à l'épisode pour modification
+            if (!authorizationService.hasAccessToEpisode(userId, episodeId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
             SequenceDTO createdSequence = sequenceService.createSequence(episodeId, createSequenceDTO);
             return new ResponseEntity<>(createdSequence, HttpStatus.CREATED);
         } catch (Exception e) {

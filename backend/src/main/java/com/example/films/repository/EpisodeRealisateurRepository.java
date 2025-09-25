@@ -14,10 +14,17 @@ public interface EpisodeRealisateurRepository extends JpaRepository<EpisodeReali
     
     List<EpisodeRealisateur> findByEpisodeId(Long episodeId);
     
-    Optional<EpisodeRealisateur> findByEpisodeIdAndRealisateurId(Long episodeId, Long realisateurId);
     
     @Query("SELECT er FROM EpisodeRealisateur er JOIN FETCH er.realisateur r JOIN FETCH r.utilisateur WHERE er.episode.id = :episodeId")
     List<EpisodeRealisateur> findByEpisodeIdWithRealisateur(@Param("episodeId") Long episodeId);
     List<EpisodeRealisateur> findByRealisateurId(Long realisateurId);
+
+    @Query("SELECT er FROM EpisodeRealisateur er WHERE er.episode.id = :episodeId AND er.realisateur.id = :realisateurId")
+    Optional<EpisodeRealisateur> findByEpisodeIdAndRealisateurId(@Param("episodeId") Long episodeId, 
+                                                               @Param("realisateurId") Long realisateurId);
+    
+    @Query("SELECT COUNT(er) > 0 FROM EpisodeRealisateur er WHERE er.realisateur.id = :realisateurId AND er.episode.projet.id = :projetId")
+    boolean existsByRealisateurIdAndProjetId(@Param("realisateurId") Long realisateurId, 
+                                           @Param("projetId") Long projetId);
 
 }
