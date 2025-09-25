@@ -760,48 +760,13 @@ export default {
     
 async loadLieuxDisponibles() {
   try {
-    const sequenceResponse = await axios.get(`/api/sequences/${this.$route.params.id}`);
-    console.log('Séquence data:', sequenceResponse.data);
+    // Si vous ne pouvez pas obtenir le projetId, chargez tous les lieux
+    console.warn('Impossible de trouver le projetId, chargement de tous les lieux');
+    const response = await axios.get('/api/lieux');
+    this.lieuxDisponibles = response.data || [];
     
-    let projetId = null;
-    
-    if (sequenceResponse.data.projetId) {
-      projetId = sequenceResponse.data.projetId;
-      console.log('Projet ID:', projetId);
-    } else if (sequenceResponse.data.episodeId) {
-      const episodeResponse = await axios.get(`/api/episodes/${sequenceResponse.data.episodeId}`);
-      console.log('Episode data:', episodeResponse.data);
-      
-      if (episodeResponse.data.projetId) {
-        projetId = episodeResponse.data.projetId;
-      } else {
-        console.error('projetId non trouvé dans l\'épisode');
-        this.lieuxDisponibles = [];
-        return;
-      }
-    } else {
-      console.error('Impossible de récupérer l\'ID du projet');
-      this.lieuxDisponibles = [];
-      return;
-    }
-    
-    const response = await axios.get(`/api/lieux/projets/${projetId}`);
-    console.log('Lieux response:', response.data);
-    
-    if (response.data && response.data.length > 0) {
-      this.lieuxDisponibles = response.data;
-    } else {
-      console.warn('Aucun lieu trouvé pour ce projet');
-      this.lieuxDisponibles = [];
-      // Optionnel : afficher un message à l'utilisateur
-      this.$notify({
-        title: 'Information',
-        message: 'Aucun lieu disponible pour ce projet. Veuillez en créer d\'abord.',
-        type: 'warning'
-      });
-    }
   } catch (error) {
-    console.error('Erreur lors du chargement des lieux:', error);
+    console.error('Erreur même avec chargement de tous les lieux:', error);
     this.lieuxDisponibles = [];
   }
 },
@@ -814,33 +779,61 @@ async loadLieuxDisponibles() {
       }
     },
     
- async addLieuToScene() {
-      if (!this.selectedLieuId) return;
-      
-      try {
-        const payload = {
-          sceneId: this.selectedScene.idScene,
-          lieuId: this.selectedLieuId,
-          plateauId: this.selectedPlateauId, 
-          descriptionUtilisation: this.lieuDescription
-        };
-          console.log('Payload envoyé:', payload);
+async addLieuToScene() {
+  if (!this.selectedLieuId) {
+    alert('Veuillez sélectionner un lieu');
+    return;
+  }
+  
+  try {
+    // Vérifier que les IDs sont bien des nombres
+    const sceneId = Number(this.selectedScene.idScene);
+    const lieuId = Number(this.selectedLieuId);
+    const plateauId = this.selectedPlateauId ? Number(this.selectedPlateauId) : null;
+    
+    const payload = {
+      sceneId: sceneId,
+      lieuId: lieuId,
+      plateauId: plateauId, 
+      descriptionUtilisation: this.lieuDescription || ''
+    };
+    
+    console.log('Payload envoyé (avec vérification):', payload);
+    console.log('Types des données:', {
+      sceneId: typeof payload.sceneId,
+      lieuId: typeof payload.lieuId,
+      plateauId: typeof payload.plateauId
+    });
 
-        await axios.post('/api/scene-lieux', payload);
-        
-        await this.loadSceneLieus(this.selectedScene.idScene);
-        
-        this.selectedLieuId = null;
-        this.selectedPlateauId = null;
-        this.lieuDescription = '';
-        this.plateauxDisponibles = [];
-        
-        alert('Lieu et plateau ajoutés avec succès à la scène!');
-      } catch (error) {
-        console.error('Erreur complète:', error.response); 
-        alert('Erreur lors de l\'ajout du lieu: ' + (error.response?.data?.message || error.message));
+    const response = await axios.post('/api/scene-lieux', payload, {
+      headers: {
+        'Content-Type': 'application/json'
       }
-    },
+    });
+    
+    console.log('Réponse du serveur:', response.data);
+    
+    await this.loadSceneLieus(this.selectedScene.idScene);
+    
+    this.selectedLieuId = null;
+    this.selectedPlateauId = null;
+    this.lieuDescription = '';
+    this.plateauxDisponibles = [];
+    
+    alert('Lieu et plateau ajoutés avec succès à la scène!');
+  } catch (error) {
+    console.error('Erreur détaillée:', error);
+    console.error('Données de l\'erreur:', error.response?.data);
+    console.error('Status de l\'erreur:', error.response?.status);
+    
+    let errorMessage = 'Erreur lors de l\'ajout du lieu';
+    if (error.response?.data) {
+      // Si le serveur retourne un message d'erreur détaillé
+      errorMessage += ': ' + (error.response.data.message || JSON.stringify(error.response.data));
+    }
+    alert(errorMessage);
+  }
+},
 
     async removeLieuFromScene(sceneLieuId) {
       if (confirm('Êtes-vous sûr de vouloir supprimer ce lieu de la scène ?')) {
