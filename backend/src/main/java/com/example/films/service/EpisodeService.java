@@ -2,13 +2,23 @@ package com.example.films.service;
 
 import com.example.films.dto.CreateEpisodeDTO;
 import com.example.films.dto.EpisodeDTO;
+import com.example.films.dto.RealisateurDTO;
+import com.example.films.dto.ScenaristeDTO;
 import com.example.films.entity.Episode;
+import com.example.films.entity.EpisodeRealisateur;
+import com.example.films.entity.EpisodeScenariste;
 import com.example.films.entity.EpisodeStatut;
 import com.example.films.entity.Projet;
+import com.example.films.entity.Realisateur;
+import com.example.films.entity.Scenariste;
 import com.example.films.entity.StatutEpisode;
+import com.example.films.repository.EpisodeRealisateurRepository;
 import com.example.films.repository.EpisodeRepository;
+import com.example.films.repository.EpisodeScenaristeRepository;
 import com.example.films.repository.EpisodeStatutRepository;
 import com.example.films.repository.ProjetRepository;
+import com.example.films.repository.RealisateurRepository;
+import com.example.films.repository.ScenaristeRepository;
 import com.example.films.repository.SequenceRepository;
 import com.example.films.repository.StatutEpisodeRepository;
 
@@ -28,17 +38,32 @@ public class EpisodeService {
     private final ProjetRepository projetRepository;
     private final StatutEpisodeRepository statutEpisodeRepository;
     private final SequenceRepository sequenceRepository;
+    private final EpisodeScenaristeRepository episodeScenaristeRepository;
+    private final EpisodeRealisateurRepository episodeRealisateurRepository;
+    private final ScenaristeRepository scenaristeRepository;
+    private final RealisateurRepository realisateurRepository;
+    
+
 
     public EpisodeService(EpisodeRepository episodeRepository,
                          EpisodeStatutRepository episodeStatutRepository,
                          ProjetRepository projetRepository,
                          StatutEpisodeRepository statutEpisodeRepository,
-                         SequenceRepository sequenceRepository) {
+                         SequenceRepository sequenceRepository,
+                         EpisodeScenaristeRepository episodeScenaristeRepository,
+                         EpisodeRealisateurRepository episodeRealisateurRepository,
+                         ScenaristeRepository scenaristeRepository,
+                         RealisateurRepository realisateurRepository) {
         this.episodeRepository = episodeRepository;
         this.episodeStatutRepository = episodeStatutRepository;
         this.projetRepository = projetRepository;
         this.statutEpisodeRepository = statutEpisodeRepository;
-         this.sequenceRepository = sequenceRepository;
+        this.sequenceRepository = sequenceRepository;
+        this.episodeScenaristeRepository = episodeScenaristeRepository;
+        this.episodeRealisateurRepository = episodeRealisateurRepository;
+        this.scenaristeRepository = scenaristeRepository;
+        this.realisateurRepository = realisateurRepository;
+        
     }
 
    public List<EpisodeDTO> getEpisodesByProjetId(Long projetId) {
@@ -92,6 +117,34 @@ public class EpisodeService {
         episodeStatut.setDateDebut(LocalDateTime.now());
         
         episodeStatutRepository.save(episodeStatut);
+
+        // Associer le Realisteur
+          if (createEpisodeDTO.getRealisateurId() != null) {
+            Realisateur realisateur = realisateurRepository.findById(createEpisodeDTO.getRealisateurId())
+                    .orElseThrow(() -> new RuntimeException("Réalisateur non trouvé"));
+            
+            EpisodeRealisateur episodeRealisateur = new EpisodeRealisateur();
+            episodeRealisateur.setEpisode(savedEpisode);
+            episodeRealisateur.setRealisateur(realisateur);
+            episodeRealisateur.setRoleRealisateur("Réalisateur principal");
+            episodeRealisateur.setPourcentageContribution(100);
+            
+            episodeRealisateurRepository.save(episodeRealisateur);
+        }
+
+        // Associer le Scenariste
+        if(createEpisodeDTO.getScenaristeId() != null) {
+            Scenariste scenariste = scenaristeRepository.findById(createEpisodeDTO.getScenaristeId())
+                    .orElseThrow(() -> new RuntimeException("Scénariste non trouvé"));
+            
+            EpisodeScenariste episodeScenariste = new EpisodeScenariste();
+            episodeScenariste.setEpisode(savedEpisode);
+            episodeScenariste.setScenariste(scenariste);
+            episodeScenariste.setRoleScenariste("Scénariste principal");
+            episodeScenariste.setPourcentageContribution(100);
+            
+            episodeScenaristeRepository.save(episodeScenariste);
+        }
         
         // Retourner le DTO
         return convertToDTO(savedEpisode);
@@ -125,6 +178,28 @@ public class EpisodeService {
             }
             
             dto.setNombreSequences(sequenceRepository.countByEpisodeId(episode.getId()));
+
+            //Récupérer le Réalisateur 
+            List<EpisodeRealisateur> realisateurs = episodeRealisateurRepository.findByEpisodeIdWithRealisateur(episode.getId());
+                if (!realisateurs.isEmpty()) {
+                    EpisodeRealisateur er = realisateurs.get(0);
+                    RealisateurDTO realisateurDTO = new RealisateurDTO();
+                    realisateurDTO.setIdRealisateur(er.getRealisateur().getId());
+                    realisateurDTO.setNom(er.getRealisateur().getUtilisateur().getNom());
+                    realisateurDTO.setEmail(er.getRealisateur().getUtilisateur().getEmail());
+                    dto.setRealisateur(realisateurDTO);
+                }
+
+            // Récupérer le scénariste
+            List<EpisodeScenariste> scenaristes = episodeScenaristeRepository.findByEpisodeIdWithScenariste(episode.getId());
+            if (!scenaristes.isEmpty()) {
+                EpisodeScenariste es = scenaristes.get(0);
+                ScenaristeDTO scenaristeDTO = new ScenaristeDTO();
+                scenaristeDTO.setIdScenariste(es.getScenariste().getId());
+                scenaristeDTO.setNom(es.getScenariste().getUtilisateur().getNom());
+                scenaristeDTO.setEmail(es.getScenariste().getUtilisateur().getEmail());
+                dto.setScenariste(scenaristeDTO);
+            }
             
             return dto;
         }
