@@ -14,7 +14,11 @@ CREATE TABLE utilisateurs (
 
 INSERT INTO utilisateurs (nom, email, mot_de_passe, role, cree_le, modifie_le) VALUES
 ('Admin Principal', 'admin@gmail.com', 'MotdepasseAdmin123', 'ADMIN', '2025-01-01 09:00:00', '2025-01-01 09:00:00'),
-('Marc Leroy', 'marc.leroy@gmail.com', 'mdpScenariste1', 'SCENARISTE', '2025-01-04 11:45:00', '2025-01-04 11:45:00');
+('Jean Dupont', 'jean.dupont@gmail.com', 'mdpRealisateur1', 'REALISATEUR', '2025-01-02 10:15:00', '2025-01-02 10:15:00'),
+('Sophie Martin', 'sophie.martin@gmail.com', 'mdpRealisateur2', 'REALISATEUR', '2025-01-03 14:30:00', '2025-01-03 14:30:00'),
+('Marc Leroy', 'marc.leroy@gmail.com', 'mdpScenariste1', 'SCENARISTE', '2025-01-04 11:45:00', '2025-01-04 11:45:00'),
+('Alice Dubois', 'alice.dubois@gmail.com', 'mdpScenariste2', 'SCENARISTE', '2025-01-05 16:20:00', '2025-01-05 16:20:00');
+
 
 CREATE TABLE scenaristes (
     id_scenariste BIGSERIAL PRIMARY KEY,
@@ -29,8 +33,6 @@ INSERT INTO scenaristes (id_utilisateur, specialite, biographie)
 SELECT 
     id_utilisateur,
     CASE 
-        WHEN nom LIKE '%Dupont%' THEN 'Thriller et Drame'
-        WHEN nom LIKE '%Martin%' THEN 'Romance et Comédie'
         WHEN nom LIKE '%Leroy%' THEN 'Documentaire'
         WHEN nom LIKE '%Dubois%' THEN 'Animation et Jeunesse'
         ELSE 'Général'
@@ -38,6 +40,29 @@ SELECT
     'Scenariste experimente' as biographie
 FROM utilisateurs 
 WHERE role = 'SCENARISTE';
+
+
+CREATE TABLE realisateurs (
+    id_realisateur BIGSERIAL PRIMARY KEY,
+    id_utilisateur BIGINT REFERENCES utilisateurs(id_utilisateur) ON DELETE CASCADE,
+    specialite VARCHAR(100),
+    biographie TEXT,
+    cree_le TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    modifie_le TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO realisateurs (id_utilisateur, specialite, biographie)
+SELECT 
+    id_utilisateur,
+    CASE 
+        WHEN nom LIKE '%Dupont%' THEN 'Thriller et Drame'
+        WHEN nom LIKE '%Martin%' THEN 'Romance et Comédie'
+        ELSE 'Général'
+    END as specialite,
+    'Realisateur experimente' as biographie
+FROM utilisateurs 
+WHERE role = 'REALISATEUR';
+
 
 CREATE TABLE genres (
     id_genre BIGSERIAL PRIMARY KEY,
@@ -161,6 +186,91 @@ CREATE TABLE episode_statuts (
     date_fin TIMESTAMP
 );
 
+
+-- Table pour lier les réalisateurs aux épisodes
+CREATE TABLE episode_realisateurs (
+    id_episode_realisateur BIGSERIAL PRIMARY KEY,
+    id_episode BIGINT REFERENCES episodes(id_episode) ON DELETE CASCADE,
+    id_realisateur BIGINT REFERENCES realisateurs(id_realisateur) ON DELETE CASCADE,
+    role_realisateur VARCHAR(100) NOT NULL DEFAULT 'Realisateur principal',
+    pourcentage_contribution INTEGER DEFAULT 100,
+    cree_le TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(id_episode, id_realisateur)
+);
+
+-- Table pour lier les scénaristes aux épisodes (au lieu des projets)
+CREATE TABLE episode_scenaristes (
+    id_episode_scenariste BIGSERIAL PRIMARY KEY,
+    id_episode BIGINT REFERENCES episodes(id_episode) ON DELETE CASCADE,
+    id_scenariste BIGINT REFERENCES scenaristes(id_scenariste) ON DELETE CASCADE,
+    role_scenariste VARCHAR(100) NOT NULL,
+    pourcentage_contribution INTEGER DEFAULT 100,
+    cree_le TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(id_episode, id_scenariste)
+);
+
+
+CREATE INDEX idx_episode_realisateurs_episode ON episode_realisateurs(id_episode);
+CREATE INDEX idx_episode_realisateurs_realisateur ON episode_realisateurs(id_realisateur);
+CREATE INDEX idx_episode_scenaristes_episode ON episode_scenaristes(id_episode);
+CREATE INDEX idx_episode_scenaristes_scenariste ON episode_scenaristes(id_scenariste);
+
+
+-- Vue pour voir tous les épisodes avec leurs réalisateurs et scénaristes
+CREATE VIEW v_episode_equipe AS
+SELECT 
+    e.id_episode,
+    e.titre as titre_episode,
+    p.titre as titre_projet,
+    r.id_realisateur,
+    u_r.nom as nom_realisateur,
+    u_r.email as email_realisateur,
+    s.id_scenariste,
+    u_s.nom as nom_scenariste,
+    u_s.email as email_scenariste
+FROM episodes e
+LEFT JOIN projets p ON e.id_projet = p.id_projet
+LEFT JOIN episode_realisateurs er ON e.id_episode = er.id_episode
+LEFT JOIN realisateurs r ON er.id_realisateur = r.id_realisateur
+LEFT JOIN utilisateurs u_r ON r.id_utilisateur = u_r.id_utilisateur
+LEFT JOIN episode_scenaristes es ON e.id_episode = es.id_episode
+LEFT JOIN scenaristes s ON es.id_scenariste = s.id_scenariste
+LEFT JOIN utilisateurs u_s ON s.id_utilisateur = u_s.id_utilisateur;
+
+
+-- Vue pour savoir quels épisodes un utilisateur peut modifier
+CREATE VIEW v_episodes_par_utilisateur AS
+SELECT 
+    u.id_utilisateur,
+    u.nom,
+    u.email,
+    u.role,
+    e.id_episode,
+    e.titre as titre_episode,
+    p.titre as titre_projet
+FROM utilisateurs u
+LEFT JOIN realisateurs r ON u.id_utilisateur = r.id_utilisateur
+LEFT JOIN episode_realisateurs e  r ON r.id_realisateur = er.id_realisateur
+LEFT JOIN episodes e ON er.id_episode = e.id_episode
+LEFT JOIN projets p ON e.id_projet = p.id_projet
+WHERE u.role = 'REALISATEUR'
+
+UNION
+
+SELECT 
+    u.id_utilisateur,
+    u.nom,
+    u.email,
+    u.role,
+    e.id_episode,
+    e.titre as titre_episode,
+    p.titre as titre_projet
+FROM utilisateurs u
+LEFT JOIN scenaristes s ON u.id_utilisateur = s.id_utilisateur
+LEFT JOIN episode_scenaristes es ON s.id_scenariste = es.id_scenariste
+LEFT JOIN episodes e ON es.id_episode = e.id_episode
+LEFT JOIN projets p ON e.id_projet = p.id_projet
+WHERE u.role = 'SCENARISTE';
 
 CREATE TABLE statuts_sequence (
     id_statut_sequence BIGSERIAL PRIMARY KEY,
