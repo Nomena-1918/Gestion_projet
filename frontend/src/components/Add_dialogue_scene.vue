@@ -179,7 +179,10 @@ export default {
   methods: {
    async loadSceneDetails() {
       try {
-        const response = await axios.get(`/api/scenes/${this.sceneId}`);
+        const user = JSON.parse(localStorage.getItem('user'));
+        const headers = user && user.id ? { 'X-User-Id': user.id } : {};
+        
+        const response = await axios.get(`/api/scenes/${this.sceneId}`, { headers });
         this.scene = response.data;
         this.sceneTitle = this.scene.titre;
 
@@ -189,9 +192,9 @@ export default {
         } else if (this.scene.sequenceId) {
           // Si projetId n'est pas directement dans la scène, chercher via la séquence
           try {
-            const sequenceResponse = await axios.get(`/api/sequences/${this.scene.sequenceId}`);
+            const sequenceResponse = await axios.get(`/api/sequences/${this.scene.sequenceId}`, { headers });
             if (sequenceResponse.data.episodeId) {
-              const episodeResponse = await axios.get(`/api/episodes/${sequenceResponse.data.episodeId}`);
+              const episodeResponse = await axios.get(`/api/episodes/${sequenceResponse.data.episodeId}`, { headers });
               this.projetId = episodeResponse.data.projetId;
             }
           } catch (error) {
@@ -204,28 +207,62 @@ export default {
         this.sceneTitle = 'Scène inconnue';
       }
     },
-    async loadPersonnages() {
+        async loadPersonnages() {
       try {
-        const response = await axios.get('/api/personnages');
+        const user = JSON.parse(localStorage.getItem('user'));
+        const headers = user && user.id ? { 'X-User-Id': user.id } : {};
+        
+        const response = await axios.get('/api/personnages', { headers });
         this.personnages = response.data;
       } catch (error) {
         console.error('Erreur lors du chargement des personnages:', error);
       }
     },
+
     async loadDialogues() {
       try {
-        const response = await axios.get('/api/dialogues');
+        const user = JSON.parse(localStorage.getItem('user'));
+        const headers = user && user.id ? { 'X-User-Id': user.id } : {};
+        
+        const response = await axios.get('/api/dialogues', { headers });
         this.dialogues = response.data;
       } catch (error) {
         console.error('Erreur lors du chargement des dialogues:', error);
       }
     },
+      async loadPersonnages() {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        const headers = user && user.id ? { 'X-User-Id': user.id } : {};
+        
+        const response = await axios.get('/api/personnages', { headers });
+        this.personnages = response.data;
+      } catch (error) {
+        console.error('Erreur lors du chargement des personnages:', error);
+      }
+    },
+
+    async loadDialogues() {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        const headers = user && user.id ? { 'X-User-Id': user.id } : {};
+        
+        const response = await axios.get('/api/dialogues', { headers });
+        this.dialogues = response.data;
+      } catch (error) {
+        console.error('Erreur lors du chargement des dialogues:', error);
+      }
+    },
+
     async loadExistingOrders() {
       if (!this.formData.sceneId) return;
       
       try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        const headers = user && user.id ? { 'X-User-Id': user.id } : {};
+        
         // Récupérer tous les dialogues de cette scène pour vérifier les ordres existants
-        const response = await axios.get(`/api/dialogues/scene/${this.formData.sceneId}`);
+        const response = await axios.get(`/api/dialogues/scene/${this.formData.sceneId}`, { headers });
         this.existingOrders = response.data.map(dialogue => dialogue.ordre);
         
         // Calculer le prochain ordre disponible
@@ -275,61 +312,74 @@ export default {
     },
     
    async submitForm() {
-      this.validateOrder();
-      
-      if (this.orderError) {
-        alert('Veuillez corriger les erreurs avant de soumettre');
-        return;
-      }
-      
-      try {
-        // Valider que sceneId est présent
-        if (!this.formData.sceneId) {
-          alert('Erreur: ID de scène manquant');
-          return;
+  this.validateOrder();
+  
+  if (this.orderError) {
+    alert('Veuillez corriger les erreurs avant de soumettre');
+    return;
+  }
+  
+  try {
+    // Récupérer l'utilisateur connecté
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.id) {
+      throw new Error('Utilisateur non connecté');
+    }
+
+    // Valider que sceneId est présent
+    if (!this.formData.sceneId) {
+      alert('Erreur: ID de scène manquant');
+      return;
+    }
+
+    const payload = {
+      sceneId: parseInt(this.formData.sceneId),
+      personnageId: this.formData.personnageId ? parseInt(this.formData.personnageId) : null,
+      texte: this.formData.texte,
+      ordre: parseInt(this.formData.ordre),
+      observation: this.formData.observation || '',
+    };
+
+    console.log('Payload envoyé:', payload); // Debug
+    
+    let response;
+    if (this.isEditing) {
+      response = await axios.put(`/api/dialogues/${this.editingId}`, payload, {
+        headers: {
+          'X-User-Id': user.id
         }
-
-        const payload = {
-          sceneId: parseInt(this.formData.sceneId),
-          personnageId: this.formData.personnageId ? parseInt(this.formData.personnageId) : null,
-          texte: this.formData.texte,
-          ordre: parseInt(this.formData.ordre),
-          observation: this.formData.observation || '',
-          
-        };
-
-        console.log('Payload envoyé:', payload); // Debug
-        
-        let response;
-        if (this.isEditing) {
-          response = await axios.put(`/api/dialogues/${this.editingId}`, payload);
-          alert('Dialogue modifié avec succès!');
-        } else {
-          response = await axios.post('/api/dialogues', payload);
-          this.newDialogueId = response.data.id;
-          alert('Dialogue ajouté avec succès!');
-          
-          // Redirection après création - Vérifier que projetId est disponible
-          if (this.projetId) {
-            this.$router.push({
-              path: `/projet/${this.projetId}/ecran-travail`,
-              query: { 
-                episodeId: this.scene.episode?.idEpisode || (this.scene.sequence ? this.scene.sequence.episodeId : null),
-                sequenceId: this.scene.sequence?.idSequence || this.scene.sequenceId 
-              }
-            });
-          } else {
-            // Fallback si projetId n'est pas disponible
-            this.$router.push('/scenariste');
+      });
+      alert('Dialogue modifié avec succès!');
+    } else {
+      response = await axios.post('/api/dialogues', payload, {
+        headers: {
+          'X-User-Id': user.id
+        }
+      });
+      this.newDialogueId = response.data.id;
+      alert('Dialogue ajouté avec succès!');
+      
+      // Redirection après création - Vérifier que projetId est disponible
+      if (this.projetId) {
+        this.$router.push({
+          path: `/projet/${this.projetId}/ecran-travail`,
+          query: { 
+            episodeId: this.scene.episode?.idEpisode || (this.scene.sequence ? this.scene.sequence.episodeId : null),
+            sequenceId: this.scene.sequence?.idSequence || this.scene.sequenceId 
           }
-        }
-        this.resetForm();
-      } catch (error) {
-        console.error('Erreur lors de la soumission du dialogue:', error);
-        console.error('Détails de l\'erreur:', error.response?.data);
-        alert('Erreur: ' + (error.response?.data?.message || error.message || 'Erreur inconnue'));
+        });
+      } else {
+        // Fallback si projetId n'est pas disponible
+        this.$router.push('/scenariste');
       }
-    },
+    }
+    this.resetForm();
+  } catch (error) {
+    console.error('Erreur lors de la soumission du dialogue:', error);
+    console.error('Détails de l\'erreur:', error.response?.data);
+    alert('Erreur: ' + (error.response?.data?.message || error.message || 'Erreur inconnue'));
+  }
+},
 
     resetForm() {
       this.formData = {
