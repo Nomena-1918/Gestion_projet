@@ -121,7 +121,7 @@ export default {
         let route = '/accueil';
         if (response.data.user.role === 'ADMIN') {
           route = '/admin';
-        } else if (response.data.user.role === 'SCENARISTE') {
+        } else if (response.data.user.role === 'SCENARISTE' || response.data.user.role === 'REALISATEUR') {
           route = '/scenariste';
         }
         this.$router.push(route);

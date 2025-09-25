@@ -275,10 +275,14 @@ export default {
     document.removeEventListener('click', this.handleClickOutside);
   },
   methods: {
-    loadUser() {
+     loadUser() {
       const userStr = localStorage.getItem('user');
       if (userStr) {
         this.user = JSON.parse(userStr);
+        
+        if (this.user.role !== 'SCENARISTE' && this.user.role !== 'REALISATEUR') {
+          this.$router.push('/accueil');
+        }
       } else {
         this.$router.push('/');
       }
