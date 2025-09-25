@@ -18,4 +18,5 @@ public interface EpisodeScenaristeRepository extends JpaRepository<EpisodeScenar
     
     @Query("SELECT es FROM EpisodeScenariste es JOIN FETCH es.scenariste s JOIN FETCH s.utilisateur WHERE es.episode.id = :episodeId")
     List<EpisodeScenariste> findByEpisodeIdWithScenariste(@Param("episodeId") Long episodeId);
+    List<EpisodeScenariste> findByScenaristeId(Long scenaristeId);
 }

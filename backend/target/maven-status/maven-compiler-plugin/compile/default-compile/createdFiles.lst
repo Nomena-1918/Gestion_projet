@@ -10,6 +10,8 @@ com\example\films\service\UtilisateurService.class
 com\example\films\controller\PlateauController.class
 com\example\films\dto\DialogueSurlignageDTO.class
 com\example\films\entity\StatutScene.class
+com\example\films\entity\EpisodeScenariste.class
+com\example\films\service\ScenaristeService.class
 com\example\films\service\CouleurService.class
 com\example\films\dto\LoginRequest.class
 com\example\films\service\SceneStatutService.class
@@ -39,11 +41,14 @@ com\example\films\service\LieuService.class
 com\example\films\entity\DisponibiliteComedien.class
 com\example\films\repository\SequenceCommentaireRepository.class
 com\example\films\service\AuthService.class
+com\example\films\dto\RealisateurDTO.class
 com\example\films\controller\SequenceController.class
 com\example\films\dto\ComedienDTO.class
 com\example\films\dto\LoginResponse.class
 com\example\films\controller\ProjetController.class
+com\example\films\entity\Scenariste.class
 com\example\films\entity\Genre.class
+com\example\films\repository\EpisodeScenaristeRepository.class
 com\example\films\dto\LieuDTO.class
 com\example\films\controller\AuthController.class
 com\example\films\service\PlateauService.class
@@ -74,12 +79,14 @@ com\example\films\dto\SceneDTO.class
 com\example\films\dto\CreateSceneLieuDTO.class
 com\example\films\service\SceneCommentaireService.class
 com\example\films\repository\DisponibiliteComedienRepository.class
+com\example\films\repository\EpisodeRealisateurRepository.class
 com\example\films\controller\LieuController.class
 com\example\films\dto\DialogueDTO.class
 com\example\films\repository\ProjetRepository.class
 com\example\films\repository\SceneCommentaireRepository.class
 com\example\films\repository\StatutSceneRepository.class
 com\example\films\entity\Sequence.class
+com\example\films\entity\EpisodeRealisateur.class
 com\example\films\entity\EpisodeCommentaire.class
 com\example\films\entity\ProjetStatut.class
 com\example\films\controller\AuthController$ErrorResponse.class
@@ -88,6 +95,7 @@ com\example\films\repository\ComedienSceneRepository.class
 com\example\films\entity\SceneLieu.class
 com\example\films\repository\DialogueRepository.class
 com\example\films\controller\EpisodeController.class
+com\example\films\controller\ScenaristeController.class
 com\example\films\dto\DisponibiliteDTO.class
 com\example\films\repository\CouleurRepository.class
 com\example\films\repository\SceneLieuRepository.class
@@ -101,6 +109,7 @@ com\example\films\service\PersonnageService.class
 com\example\films\entity\Lieu.class
 com\example\films\dto\CreateProjetDTO.class
 com\example\films\repository\EpisodeStatutRepository.class
+com\example\films\service\RealisateurService.class
 com\example\films\dto\EpisodeDTO.class
 com\example\films\entity\Dialogue.class
 com\example\films\repository\UtilisateurRepository.class
@@ -115,6 +124,7 @@ com\example\films\dto\PlateauDTO.class
 com\example\films\service\EpisodeService.class
 com\example\films\entity\SceneCommentaire.class
 com\example\films\service\GenreService.class
+com\example\films\repository\ScenaristeRepository.class
 com\example\films\controller\StatutSceneController.class
 com\example\films\service\SceneLieuService.class
 com\example\films\controller\EcranTravailController.class
@@ -124,7 +134,9 @@ com\example\films\entity\EpisodeStatut.class
 com\example\films\entity\SceneStatut.class
 com\example\films\dto\CreateComedienDTO.class
 com\example\films\dto\CreateSceneDTO.class
+com\example\films\dto\ScenaristeDTO.class
 com\example\films\repository\PlateauRepository.class
+com\example\films\entity\Realisateur.class
 com\example\films\service\SequenceService.class
 com\example\films\dto\PersonnageDTO.class
 com\example\films\repository\StatutProjetRepository.class
@@ -137,6 +149,7 @@ com\example\films\repository\GenreRepository.class
 com\example\films\service\StatutSceneService.class
 com\example\films\entity\Couleur.class
 com\example\films\entity\ComedienScene.class
+com\example\films\repository\RealisateurRepository.class
 com\example\films\repository\StatutEpisodeRepository.class
 com\example\films\repository\CommentaireRepository.class
 com\example\films\entity\Comedien.class
@@ -144,6 +157,7 @@ com\example\films\dto\CreateCommentaireDTO.class
 com\example\films\entity\StatutProjet.class
 com\example\films\controller\DialogueCommentaireController.class
 com\example\films\controller\HomeController.class
+com\example\films\controller\RealisateurController.class
 com\example\films\controller\ScenePlateauController.class
 com\example\films\service\SequenceCommentaireService.class
 com\example\films\controller\SceneLieuController.class

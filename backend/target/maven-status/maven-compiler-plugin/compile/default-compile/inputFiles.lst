@@ -1,5 +1,6 @@
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\StatutScene.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\ComedienSceneDTO.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\ScenaristeDTO.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\ComedienSceneController.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\SequenceCommentaire.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\DisponibiliteComedien.java
@@ -10,6 +11,7 @@ C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\s
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\LieuDTO.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\config\WebConfig.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\CouleurController.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\RealisateurController.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\ComedienSceneRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\Scene.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\CreatePlateauDTO.java
@@ -30,6 +32,7 @@ C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\r
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\CouleurRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\GenreRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\DialogueSurlignage.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\service\RealisateurService.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\StatutSceneRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\SceneStatutRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\StatutProjetController.java
@@ -52,11 +55,14 @@ C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\r
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\EcranTravailController.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\StatutProjetRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\PlateauRepository.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\service\AuthorizationService.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\SceneRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\ProjetStatut.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\service\SceneLieuService.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\CommentaireDTO.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\EpisodeCommentaireRepository.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\RealisateurRepository.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\RealisateurDTO.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\CreateScenePlateauDTO.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\service\StatutEpisodeService.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\CouleurDTO.java
@@ -65,6 +71,7 @@ C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\s
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\SceneLieuRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\ComedienDTO.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\EpisodeDTO.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\EpisodeScenaristeRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\PlateauController.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\CreateSceneCommentaireDTO.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\LieuController.java
@@ -76,6 +83,7 @@ C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\s
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\CreateSceneLieuDTO.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\LieuRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\SceneLieu.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\ScenaristeRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\service\CommentaireService.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\PlateauDTO.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\Sequence.java
@@ -103,6 +111,7 @@ C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\c
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\DialogueController.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\HomeController.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\DisponibiliteDTO.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\Scenariste.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\service\DialogueCommentaireService.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\DialogueSurlignageController.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\CreateLieuDTO.java
@@ -119,13 +128,17 @@ C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\s
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\service\UtilisateurService.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\CreateSceneDTO.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\Lieu.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\ScenaristeController.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\EpisodeRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\StatutEpisodeRepository.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\Realisateur.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\SceneCommentaire.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\ComedienController.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\ProjetRepository.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\EpisodeRealisateurRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\Comedien.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\controller\StatutSceneController.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\EpisodeScenariste.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\repository\ComedienRepository.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\service\PlateauService.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\StatutSequence.java
@@ -146,4 +159,6 @@ C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\d
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\ScenePlateauDTO.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\FilmManagementApplication.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\CreateCommentaireDTO.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\service\ScenaristeService.java
 C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\dto\CreateEpisodeDTO.java
+C:\Users\ASUS\Pictures\film-management\backend\src\main\java\com\example\films\entity\EpisodeRealisateur.java

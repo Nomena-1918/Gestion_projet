@@ -12,6 +12,7 @@ import com.example.films.entity.Projet;
 import com.example.films.entity.Realisateur;
 import com.example.films.entity.Scenariste;
 import com.example.films.entity.StatutEpisode;
+import com.example.films.entity.Utilisateur;
 import com.example.films.repository.EpisodeRealisateurRepository;
 import com.example.films.repository.EpisodeRepository;
 import com.example.films.repository.EpisodeScenaristeRepository;
@@ -21,6 +22,7 @@ import com.example.films.repository.RealisateurRepository;
 import com.example.films.repository.ScenaristeRepository;
 import com.example.films.repository.SequenceRepository;
 import com.example.films.repository.StatutEpisodeRepository;
+import com.example.films.repository.UtilisateurRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 import java.util.Comparator;
 
 @Service
@@ -42,7 +45,7 @@ public class EpisodeService {
     private final EpisodeRealisateurRepository episodeRealisateurRepository;
     private final ScenaristeRepository scenaristeRepository;
     private final RealisateurRepository realisateurRepository;
-    
+    private final UtilisateurRepository utilisateurRepository;
 
 
     public EpisodeService(EpisodeRepository episodeRepository,
@@ -53,7 +56,8 @@ public class EpisodeService {
                          EpisodeScenaristeRepository episodeScenaristeRepository,
                          EpisodeRealisateurRepository episodeRealisateurRepository,
                          ScenaristeRepository scenaristeRepository,
-                         RealisateurRepository realisateurRepository) {
+                         RealisateurRepository realisateurRepository,
+                         UtilisateurRepository utilisateurRepository) {
         this.episodeRepository = episodeRepository;
         this.episodeStatutRepository = episodeStatutRepository;
         this.projetRepository = projetRepository;
@@ -63,6 +67,7 @@ public class EpisodeService {
         this.episodeRealisateurRepository = episodeRealisateurRepository;
         this.scenaristeRepository = scenaristeRepository;
         this.realisateurRepository = realisateurRepository;
+        this.utilisateurRepository = utilisateurRepository;
         
     }
 
@@ -80,6 +85,46 @@ public class EpisodeService {
         List<Episode> existingEpisodes = episodeRepository.findByProjetId(projetId);
         return existingEpisodes.stream()
                 .anyMatch(ep -> ep.getOrdre().equals(order));
+    }
+
+    public List<EpisodeDTO> getEpisodesByUtilisateurId(Long utilisateurId) {
+        // Récupérer l'utilisateur
+        Utilisateur utilisateur = utilisateurRepository.findById(utilisateurId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        
+        List<Episode> episodes = new ArrayList<>();
+        
+        if ("REALISATEUR".equals(utilisateur.getRole())) {
+            // Récupérer les épisodes où l'utilisateur est réalisateur
+            Realisateur realisateur = realisateurRepository.findByUtilisateurId(utilisateurId)
+                    .orElseThrow(() -> new RuntimeException("Réalisateur non trouvé"));
+            
+            List<EpisodeRealisateur> episodeRealisateurs = episodeRealisateurRepository
+                    .findByRealisateurId(realisateur.getId());
+            
+            episodes = episodeRealisateurs.stream()
+                    .map(er -> er.getEpisode())
+                    .collect(Collectors.toList());
+            
+        } else if ("SCENARISTE".equals(utilisateur.getRole())) {
+            // Récupérer les épisodes où l'utilisateur est scénariste
+            Scenariste scenariste = scenaristeRepository.findByUtilisateurId(utilisateurId)
+                    .orElseThrow(() -> new RuntimeException("Scénariste non trouvé"));
+            
+            // CORRECTION : Utiliser le bon repository
+            List<EpisodeScenariste> episodeScenaristes = episodeScenaristeRepository.findByScenaristeId(scenariste.getId());
+            
+            episodes = episodeScenaristes.stream()
+                    .map(es -> es.getEpisode())
+                    .collect(Collectors.toList());
+        } else if ("ADMIN".equals(utilisateur.getRole())) {
+            // Les admins voient tous les épisodes
+            episodes = episodeRepository.findAll();
+        }
+        
+        return episodes.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
     
     @Transactional

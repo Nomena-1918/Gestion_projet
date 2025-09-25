@@ -2,6 +2,8 @@
 package com.example.films.repository;
 
 import com.example.films.entity.Episode;
+import com.example.films.entity.EpisodeScenariste;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,5 +24,5 @@ public interface EpisodeRepository extends JpaRepository<Episode, Long> {
     @Query("SELECT COUNT(e) FROM Episode e WHERE e.projet.id = :projetId")
     Integer countByProjetId(@Param("projetId") Long projetId);
     List<Episode> findByProjetIdOrderByOrdreAsc(Long projetId);
-
+   
 }

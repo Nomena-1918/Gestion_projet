@@ -18,4 +18,6 @@ public interface EpisodeRealisateurRepository extends JpaRepository<EpisodeReali
     
     @Query("SELECT er FROM EpisodeRealisateur er JOIN FETCH er.realisateur r JOIN FETCH r.utilisateur WHERE er.episode.id = :episodeId")
     List<EpisodeRealisateur> findByEpisodeIdWithRealisateur(@Param("episodeId") Long episodeId);
+    List<EpisodeRealisateur> findByRealisateurId(Long realisateurId);
+
 }
