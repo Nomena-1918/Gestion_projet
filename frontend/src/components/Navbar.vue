@@ -64,6 +64,11 @@
           <span v-if="!isCollapsed" class="link-text">Gestion Plateaux</span>
         </router-link>
 
+        <router-link to="/gestion-equipe" class="sidebar-link" v-if="user?.role === 'ADMIN'" @click="toggleSidebarIfMobile">
+          <i class="fas fa-users-cog icon"></i>
+          <span v-if="!isCollapsed" class="link-text">Gestion Équipe</span>
+        </router-link>
+
       </div>
       
       <div class="sidebar-footer">

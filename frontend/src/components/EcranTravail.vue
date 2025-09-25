@@ -1518,11 +1518,10 @@ const goToAddSequence = async () => {
 };
 
 const goToAddScene = () => {
-  // Sauvegarder l'URL actuelle dans le localStorage
+  
   const currentUrl = window.location.pathname + window.location.search;
   localStorage.setItem('lastEcranTravailUrl', currentUrl);
   
-  // Passer l'URL de retour comme paramètre de query
   router.push({
     path: `/sequence/${store.currentSequence?.idSequence}/add-scene-ecran-travail`,
     query: { 
