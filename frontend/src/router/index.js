@@ -80,7 +80,7 @@ const routes = [
     component: () => import('../views/EpisodeScenaristeDetails.vue')
   },
   {
-    path: '/episode/:episodeId/add-sequence',
+    path: '/episode/:id/add-sequence',
     name: 'add-sequence',
     component: () => import('../views/AddSequence.vue')
   },
