@@ -381,14 +381,18 @@ export default {
         }
       }
     },
-    async loadSequences() {
-      try {
-        const response = await axios.get(`/api/sequences/episodes/${this.$route.params.id}`);
-        this.sequences = response.data;
-      } catch (error) {
-        console.error('Erreur lors du chargement des séquences:', error);
-      }
-    },
+  async loadSequences() {
+    try {
+      const response = await axios.get(`/api/sequences/episodes/${this.$route.params.id}`, {
+        headers: {
+          'X-User-Id': this.user.id // Ajouter cet en-tête
+        }
+      });
+      this.sequences = response.data;
+    } catch (error) {
+      console.error('Erreur lors du chargement des séquences:', error);
+    }
+  },
 
     async loadStatutsSequence() {
       try {
