@@ -114,4 +114,41 @@ public class AuthorizationService {
         
         return false;
     }
+
+    public boolean hasAccessToSceneCreation(Long utilisateurId, Long episodeId) {
+        return hasAccessToEpisode(utilisateurId, episodeId);
+    }
+
+    public boolean hasAccessToDialogueCreation(Long utilisateurId, Long sceneId) {
+        var scene = sceneRepository.findById(sceneId)
+                .orElseThrow(() -> new RuntimeException("Scène non trouvée"));
+        
+        return hasAccessToEpisode(utilisateurId, scene.getSequence().getEpisode().getId());
+    }
+
+    public boolean hasAccessToLieuCreation(Long utilisateurId, Long projetId) {
+        var utilisateur = utilisateurRepository.findById(utilisateurId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        
+        if ("ADMIN".equals(utilisateur.getRole())) {
+            return true;
+        }
+        
+        // Vérifier si l'utilisateur est associé au projet via ses épisodes
+        if ("REALISATEUR".equals(utilisateur.getRole())) {
+            var realisateur = realisateurRepository.findByUtilisateurId(utilisateurId)
+                    .orElseThrow(() -> new RuntimeException("Réalisateur non trouvé"));
+            
+            return episodeRealisateurRepository.existsByRealisateurIdAndProjetId(realisateur.getId(), projetId);
+        }
+        
+        if ("SCENARISTE".equals(utilisateur.getRole())) {
+            var scenariste = scenaristeRepository.findByUtilisateurId(utilisateurId)
+                    .orElseThrow(() -> new RuntimeException("Scénariste non trouvé"));
+            
+            return episodeScenaristeRepository.existsByScenaristeIdAndProjetId(scenariste.getId(), projetId);
+        }
+        
+        return false;
+    }
 }

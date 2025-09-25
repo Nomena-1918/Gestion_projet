@@ -9,4 +9,5 @@ public class CreateDialogueDTO {
     private String texte;
     private Integer ordre;
     private String observation;
+    
 }

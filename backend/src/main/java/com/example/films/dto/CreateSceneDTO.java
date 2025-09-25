@@ -8,4 +8,5 @@ public class CreateSceneDTO {
     private Integer ordre;
     private String synopsis;
     private Long statutId;
+     private Long sequenceId;
 }

@@ -5,6 +5,7 @@ import com.example.films.dto.EpisodeDTO;
 import com.example.films.dto.SceneDTO;
 import com.example.films.dto.SceneLieuDTO;
 import com.example.films.dto.SequenceDTO;
+import com.example.films.service.AuthorizationService;
 import com.example.films.service.DialogueService;
 import com.example.films.service.EpisodeService;
 import com.example.films.service.SceneLieuService;
@@ -28,17 +29,20 @@ public class EcranTravailController {
     private final SceneService sceneService;
     private final SceneLieuService sceneLieuService;
     private final DialogueService dialogueService;
+    private final AuthorizationService authorizationService;
 
     public EcranTravailController(EpisodeService episodeService, SequenceService sequenceService,
                                   SceneService sceneService, SceneLieuService sceneLieuService,
-                                  DialogueService dialogueService) {
+                                  DialogueService dialogueService, AuthorizationService authorizationService) {
         this.episodeService = episodeService;
         this.sequenceService = sequenceService;
         this.sceneService = sceneService;
         this.sceneLieuService = sceneLieuService;
         this.dialogueService = dialogueService;
+        this.authorizationService = authorizationService;
     }
 
+ 
     // Récupérer tous les épisodes d'un projet
     @GetMapping("/projets/{projetId}/episodes")
     public ResponseEntity<List<EpisodeDTO>> getEpisodes(@PathVariable Long projetId) {

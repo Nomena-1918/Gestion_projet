@@ -111,6 +111,17 @@ public class EpisodeController {
         }
     }
 
+    @GetMapping("/{id}/access-check")
+    public ResponseEntity<Boolean> checkEpisodeAccess(@PathVariable Long id,
+                                                    @RequestHeader("X-User-Id") Long userId) {
+        try {
+            boolean hasAccess = authorizationService.hasAccessToEpisode(userId, id);
+            return ResponseEntity.ok(hasAccess);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<EpisodeDTO> updateEpisode(@PathVariable Long id, 
                                                 @RequestBody CreateEpisodeDTO updateEpisodeDTO,

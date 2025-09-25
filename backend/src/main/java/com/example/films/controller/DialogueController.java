@@ -2,6 +2,7 @@ package com.example.films.controller;
 
 import com.example.films.dto.CreateDialogueDTO;
 import com.example.films.dto.DialogueDTO;
+import com.example.films.service.AuthorizationService;
 import com.example.films.service.DialogueService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,8 +15,11 @@ import java.util.List;
 public class DialogueController {
     
     private final DialogueService dialogueService;
+     private final AuthorizationService authorizationService;
     
-    public DialogueController(DialogueService dialogueService) {
+    public DialogueController(DialogueService dialogueService, 
+                              AuthorizationService authorizationService) {
+        this.authorizationService = authorizationService;
         this.dialogueService = dialogueService;
     }
     
@@ -40,19 +44,31 @@ public class DialogueController {
     }
     
     @PostMapping
-    public ResponseEntity<DialogueDTO> createDialogue(@RequestBody CreateDialogueDTO createDialogueDTO) {
+    public ResponseEntity<DialogueDTO> createDialogue(@RequestBody CreateDialogueDTO createDialogueDTO,
+                                                    @RequestHeader("X-User-Id") Long userId) {
         try {
+            if (!authorizationService.hasAccessToDialogueCreation(userId, createDialogueDTO.getSceneId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
             DialogueDTO createdDialogue = dialogueService.createDialogue(createDialogueDTO);
             return new ResponseEntity<>(createdDialogue, HttpStatus.CREATED);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
         }
     }
     
     @PutMapping("/{id}")
-    public ResponseEntity<DialogueDTO> updateDialogue(@PathVariable Long id, 
-                                                     @RequestBody CreateDialogueDTO updateDialogueDTO) {
+    public ResponseEntity<DialogueDTO> updateDialogue(@PathVariable Long id,
+                                                    @RequestBody CreateDialogueDTO updateDialogueDTO,
+                                                    @RequestHeader("X-User-Id") Long userId) {
         try {
+            // Récupérer le dialogue pour obtenir la scène parente
+            DialogueDTO existingDialogue = dialogueService.getDialogueById(id);
+            if (!authorizationService.hasAccessToDialogueCreation(userId, existingDialogue.getSceneId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
             DialogueDTO updatedDialogue = dialogueService.updateDialogue(id, updateDialogueDTO);
             return ResponseEntity.ok(updatedDialogue);
         } catch (RuntimeException e) {
@@ -61,8 +77,14 @@ public class DialogueController {
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDialogue(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteDialogue(@PathVariable Long id,
+                                            @RequestHeader("X-User-Id") Long userId) {
         try {
+            DialogueDTO existingDialogue = dialogueService.getDialogueById(id);
+            if (!authorizationService.hasAccessToDialogueCreation(userId, existingDialogue.getSceneId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
             dialogueService.deleteDialogue(id);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
