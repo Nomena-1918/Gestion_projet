@@ -184,6 +184,11 @@ const routes = [
     component: Add_personnage_ecran_travail,
     props: true,
   },
+  {
+    path: '/gestion-equipe',
+    name: 'gestion-equipe',
+    component: () => import('../views/GestionEquipe.vue')
+  }
 ]
 
 const router = createRouter({
