@@ -549,3 +549,98 @@ CREATE TABLE dialogue_surlignages (
 CREATE INDEX idx_dialogue_surlignage_dialogue_id ON dialogue_surlignages(dialogue_id);
 CREATE INDEX idx_dialogue_surlignage_couleur_id ON dialogue_surlignages(couleur_id);
 CREATE INDEX idx_dialogue_surlignage_utilisateur_id ON dialogue_surlignages(utilisateur_id);
+
+
+
+CREATE VIEW v_episode_permissions AS
+SELECT 
+    e.id_episode,
+    u.id_utilisateur,
+    u.role,
+    CASE 
+        WHEN u.role = 'ADMIN' THEN TRUE
+        WHEN u.role = 'REALISATEUR' AND er.id_episode_realisateur IS NOT NULL THEN TRUE
+        WHEN u.role = 'SCENARISTE' AND es.id_episode_scenariste IS NOT NULL THEN TRUE
+        ELSE FALSE
+    END as has_access
+FROM episodes e
+CROSS JOIN utilisateurs u
+LEFT JOIN episode_realisateurs er ON e.id_episode = er.id_episode 
+    AND er.id_realisateur IN (SELECT id_realisateur FROM realisateurs WHERE id_utilisateur = u.id_utilisateur)
+LEFT JOIN episode_scenaristes es ON e.id_episode = es.id_episode 
+    AND es.id_scenariste IN (SELECT id_scenariste FROM scenaristes WHERE id_utilisateur = u.id_utilisateur)
+WHERE u.role IN ('ADMIN', 'REALISATEUR', 'SCENARISTE');
+
+-- Vue pour les permissions détaillées
+CREATE VIEW v_user_episode_permissions AS
+SELECT 
+    ep.id_episode,
+    u.id_utilisateur,
+    u.nom,
+    u.role,
+    -- Permissions de base
+    CASE WHEN u.role = 'ADMIN' THEN TRUE
+         WHEN EXISTS (SELECT 1 FROM episode_realisateurs er 
+                     JOIN realisateurs r ON er.id_realisateur = r.id_realisateur 
+                     WHERE er.id_episode = ep.id_episode AND r.id_utilisateur = u.id_utilisateur) THEN TRUE
+         WHEN EXISTS (SELECT 1 FROM episode_scenaristes es 
+                     JOIN scenaristes s ON es.id_scenariste = s.id_scenariste 
+                     WHERE es.id_episode = ep.id_episode AND s.id_utilisateur = u.id_utilisateur) THEN TRUE
+         ELSE FALSE
+    END as can_access_episode,
+    
+    -- Permissions d'édition
+    CASE WHEN u.role = 'ADMIN' THEN TRUE
+         WHEN EXISTS (SELECT 1 FROM episode_realisateurs er 
+                     JOIN realisateurs r ON er.id_realisateur = r.id_realisateur 
+                     WHERE er.id_episode = ep.id_episode AND r.id_utilisateur = u.id_utilisateur) THEN TRUE
+         ELSE FALSE
+    END as can_edit_episode,
+    
+    -- Permissions de création de séquences
+    CASE WHEN u.role = 'ADMIN' THEN TRUE
+         WHEN EXISTS (SELECT 1 FROM episode_realisateurs er 
+                     JOIN realisateurs r ON er.id_realisateur = r.id_realisateur 
+                     WHERE er.id_episode = ep.id_episode AND r.id_utilisateur = u.id_utilisateur) THEN TRUE
+         WHEN EXISTS (SELECT 1 FROM episode_scenaristes es 
+                     JOIN scenaristes s ON es.id_scenariste = s.id_scenariste 
+                     WHERE es.id_episode = ep.id_episode AND s.id_utilisateur = u.id_utilisateur) THEN TRUE
+         ELSE FALSE
+    END as can_create_sequence,
+
+    -- Permissions de création de scènes
+    CASE WHEN u.role = 'ADMIN' THEN TRUE
+         WHEN EXISTS (SELECT 1 FROM episode_realisateurs er 
+                     JOIN realisateurs r ON er.id_realisateur = r.id_realisateur 
+                     WHERE er.id_episode = ep.id_episode AND r.id_utilisateur = u.id_utilisateur) THEN TRUE
+         WHEN EXISTS (SELECT 1 FROM episode_scenaristes es 
+                     JOIN scenaristes s ON es.id_scenariste = s.id_scenariste 
+                     WHERE es.id_episode = ep.id_episode AND s.id_utilisateur = u.id_utilisateur) THEN TRUE
+         ELSE FALSE
+    END as can_create_scene,
+
+    -- Permissions de création de dialogues
+    CASE WHEN u.role = 'ADMIN' THEN TRUE
+         WHEN EXISTS (SELECT 1 FROM episode_realisateurs er 
+                     JOIN realisateurs r ON er.id_realisateur = r.id_realisateur 
+                     WHERE er.id_episode = ep.id_episode AND r.id_utilisateur = u.id_utilisateur) THEN TRUE
+         WHEN EXISTS (SELECT 1 FROM episode_scenaristes es 
+                     JOIN scenaristes s ON es.id_scenariste = s.id_scenariste 
+                     WHERE es.id_episode = ep.id_episode AND s.id_utilisateur = u.id_utilisateur) THEN TRUE
+         ELSE FALSE
+    END as can_create_dialogue,
+
+    -- Permissions de création de lieux/plateaux
+    CASE WHEN u.role = 'ADMIN' THEN TRUE
+         WHEN EXISTS (SELECT 1 FROM episode_realisateurs er 
+                     JOIN realisateurs r ON er.id_realisateur = r.id_realisateur 
+                     WHERE er.id_episode = ep.id_episode AND r.id_utilisateur = u.id_utilisateur) THEN TRUE
+         WHEN EXISTS (SELECT 1 FROM episode_scenaristes es 
+                     JOIN scenaristes s ON es.id_scenariste = s.id_scenariste 
+                     WHERE es.id_episode = ep.id_episode AND s.id_utilisateur = u.id_utilisateur) THEN TRUE
+         ELSE FALSE
+    END as can_create_lieu
+
+FROM episodes ep
+CROSS JOIN utilisateurs u
+WHERE u.role IN ('ADMIN', 'REALISATEUR', 'SCENARISTE');
