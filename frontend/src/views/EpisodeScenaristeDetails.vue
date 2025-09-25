@@ -70,6 +70,33 @@
               <span class="date-label">Ordre:</span>
               <span class="date-value">{{ episode.ordre }}</span>
             </div>
+            
+            <!-- Informations du Scénariste -->
+            <div class="episode-team" v-if="episode.scenariste">
+              <span class="team-label">Scénariste:</span>
+              <div class="team-member">
+                <span class="member-name">{{ episode.scenariste.nom }}</span>
+                <span class="member-email">{{ episode.scenariste.email }}</span>
+              </div>
+            </div>
+            <div class="episode-team" v-else>
+              <span class="team-label">Scénariste:</span>
+              <span class="team-value">Non assigné</span>
+            </div>
+            
+            <!-- Informations du Réalisateur -->
+            <div class="episode-team" v-if="episode.realisateur">
+              <span class="team-label">Réalisateur:</span>
+              <div class="team-member">
+                <span class="member-name">{{ episode.realisateur.nom }}</span>
+                <span class="member-email">{{ episode.realisateur.email }}</span>
+              </div>
+            </div>
+            <div class="episode-team" v-else>
+              <span class="team-label">Réalisateur:</span>
+              <span class="team-value">Non assigné</span>
+            </div>
+            
             <div class="episode-date">
               <span class="date-label">Créé le:</span>
               <span class="date-value">{{ formatDate(episode.creeLe) }}</span>
@@ -223,7 +250,10 @@ export default {
     return {
       user: JSON.parse(localStorage.getItem('user')) || null,
       showProfileMenu: false,
-      episode: {},
+      episode: {
+        scenariste: null,
+        realisateur: null
+      },
       sequences: [],
       statutsSequence: [],
       accessDenied: false, 
@@ -329,15 +359,20 @@ export default {
         this.accessDenied = true;
       }
     },
-    async loadEpisode() {
+     async loadEpisode() {
       try {
-        
         const response = await axios.get(`/api/episodes/${this.$route.params.id}`, {
           headers: {
             'X-User-Id': this.user.id
           }
         });
         this.episode = response.data;
+        
+        // Vérifier et logger les données reçues pour debug
+        console.log('Données de l\'épisode:', this.episode);
+        console.log('Scénariste:', this.episode.scenariste);
+        console.log('Réalisateur:', this.episode.realisateur);
+        
       } catch (error) {
         if (error.response?.status === 403) {
           this.accessDenied = true;
@@ -1273,6 +1308,64 @@ export default {
 
 .access-denied-content .back-btn:hover {
   transform: translateY(-2px);
+}
+
+.episode-team {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #667eea;
+}
+
+.team-label {
+  display: block;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.team-member {
+  display: flex;
+  flex-direction: column;
+}
+
+.member-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+}
+
+.member-email {
+  color: #666;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.team-value {
+  color: #888;
+  font-style: italic;
+}
+
+/* Adaptation responsive */
+@media (max-width: 768px) {
+  .episode-team {
+    margin-bottom: 0.75rem;
+    padding: 0.5rem;
+  }
+  
+  .team-label {
+    font-size: 0.85rem;
+  }
+  
+  .member-name {
+    font-size: 0.9rem;
+  }
+  
+  .member-email {
+    font-size: 0.8rem;
+  }
 }
 
 </style>
