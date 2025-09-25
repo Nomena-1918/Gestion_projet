@@ -122,19 +122,25 @@ export default {
     document.removeEventListener('click', this.handleClickOutside);
   },
   methods: {
-    async loadStatutsScene() {
+   async loadStatutsScene() {
       try {
-        const response = await axios.get('/api/statuts-scene');
+        const user = JSON.parse(localStorage.getItem('user'));
+        const headers = user && user.id ? { 'X-User-Id': user.id } : {};
+        
+        const response = await axios.get('/api/statuts-scene', { headers });
         this.statutsScene = response.data;
       } catch (error) {
         console.error('Erreur lors du chargement des statuts:', error);
         this.errorMessage = 'Erreur lors du chargement des statuts';
       }
-    },
-    async loadSequenceDetails() {
+   },
+   async loadSequenceDetails() {
       try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        const headers = user && user.id ? { 'X-User-Id': user.id } : {};
+        
         // Récupérer les détails de la séquence
-        const sequenceResponse = await axios.get(`/api/sequences/${this.sequenceId}`);
+        const sequenceResponse = await axios.get(`/api/sequences/${this.sequenceId}`, { headers });
         const sequence = sequenceResponse.data;
         this.sequenceTitre = sequence.titre;
       } catch (error) {
@@ -144,8 +150,11 @@ export default {
     },
     async loadExistingOrders() {
       try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        const headers = user && user.id ? { 'X-User-Id': user.id } : {};
+        
         // Récupérer toutes les scènes de cette séquence pour vérifier les ordres existants
-        const response = await axios.get(`/api/scenes/sequences/${this.sequenceId}`);
+        const response = await axios.get(`/api/scenes/sequences/${this.sequenceId}`, { headers });
         this.existingOrders = response.data.map(scene => scene.ordre);
         
         // Calculer le prochain ordre disponible
@@ -204,7 +213,18 @@ export default {
       this.errorMessage = '';
       
       try {
-        await axios.post(`/api/scenes/sequences/${this.sequenceId}`, this.scene);
+        // Récupérer l'utilisateur connecté
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user.id) {
+          throw new Error('Utilisateur non connecté');
+        }
+
+        // Ajouter le header X-User-Id
+        const response = await axios.post(`/api/scenes/sequences/${this.sequenceId}`, this.scene, {
+          headers: {
+            'X-User-Id': user.id
+          }
+        });
         
         // Redirection vers l'URL sauvegardée
         this.$router.push(this.backUrl);
