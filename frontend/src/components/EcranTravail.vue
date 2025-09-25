@@ -1605,36 +1605,19 @@ const goToAddEpisode = async () => {
 };
 
 const goToAddSequence = async () => {
-   if (!userPermissions.value.canCreateSequence) {
-        alert('Vous n\'êtes pas autorisé à créer des séquences pour cet épisode.');
-        return;
-    }
+  if (!userPermissions.value.canCreateSequence) {
+    alert('Vous n\'êtes pas autorisé à créer des séquences pour cet épisode.');
+    return;
+  }
+  
   if (!store.currentEpisode?.idEpisode) {
     console.error('ID de l\'épisode non trouvé !');
     alert('ID de l\'épisode manquant. Veuillez réessayer.');
     return;
   }
-  try {
-    const response = await axios.post(`/api/sequences`, {
-      episodeId: store.currentEpisode.idEpisode,
-      titre: 'Nouvelle Séquence',
-      ordre: store.sequences.length + 1,
-      synopsis: '',
-      statutId: getStatutIdByNom('sequence', 'Brouillon')
-    });
-    if (response.status === 201) { 
-      const newSequenceId = response.data.idSequence;
-      await store.fetchSequences(store.currentEpisode.idEpisode);
-      newlyCreatedSequenceId.value = newSequenceId;
-      await selectSequence(newSequenceId);
-      setTimeout(() => {
-        newlyCreatedSequenceId.value = null;
-      }, 5000);
-    }
-  } catch (error) {
-    console.error('Erreur lors de la création de la séquence:', error);
-  }
-  router.push(`/episode/${store.currentEpisode?.idEpisode}/add-sequence-ecran-travail`);
+  
+  // Navigation vers la page d'ajout de séquence
+  router.push(`/episode/${store.currentEpisode.idEpisode}/add-sequence-ecran-travail`);
 };
 
 const goToAddScene = () => {

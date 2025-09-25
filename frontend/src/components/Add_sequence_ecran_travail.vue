@@ -155,16 +155,18 @@ export default {
     document.removeEventListener('click', this.handleClickOutside);
   },
   methods: {
-    async loadEpisode() {
-      try {
-        const response = await axios.get(`/api/episodes/${this.episodeId}`);
-        this.episode = response.data;
-        // Assure-toi que l'API retourne episode.projetId ; sinon, ajoute une requête séparée si nécessaire
-      } catch (error) {
-        console.error('Erreur lors du chargement de l\'épisode:', error);
-        this.errorMessage = 'Erreur lors du chargement de l\'épisode.';
-      }
-    },
+  async loadEpisode() {
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      const headers = user && user.id ? { 'X-User-Id': user.id } : {};
+      
+      const response = await axios.get(`/api/episodes/${this.episodeId}`, { headers });
+      this.episode = response.data;
+    } catch (error) {
+      console.error('Erreur lors du chargement de l\'épisode:', error);
+      this.errorMessage = 'Erreur lors du chargement de l\'épisode.';
+    }
+  },
     async loadStatutsSequence() {
       try {
         const response = await axios.get('/api/statuts-sequence');
@@ -174,18 +176,21 @@ export default {
         this.errorMessage = 'Erreur lors du chargement des statuts.';
       }
     },
-    async fetchExistingSequences() {
+   async fetchExistingSequences() {
       try {
-        const response = await axios.get(`/api/sequences/episodes/${this.episodeId}`);
+        const user = JSON.parse(localStorage.getItem('user'));
+        const headers = user && user.id ? { 'X-User-Id': user.id } : {};
         
-        // Récupérer tous les ordres existants
+        const response = await axios.get(`/api/sequences/episodes/${this.episodeId}`, { headers });
+        
         this.existingOrders = response.data.map(sequence => sequence.ordre);
-        
-        // Calculer le prochain ordre disponible
         this.calculateSuggestedOrdre();
         
       } catch (error) {
         console.error('Erreur lors du chargement des séquences existantes:', error);
+        // Ne pas bloquer l'interface en cas d'erreur
+        this.existingOrders = [];
+        this.calculateSuggestedOrdre();
       }
     },
     calculateSuggestedOrdre() {
@@ -224,45 +229,53 @@ export default {
       this.formData.ordre = this.suggestedOrdre;
       this.validateOrdre();
     },
-    async submitForm() {
-      // Valider à nouveau avant soumission
-      this.validateOrdre();
-      
-      if (this.ordreError) {
-        this.errorMessage = 'Veuillez corriger les erreurs avant de soumettre';
-        return;
+async submitForm() {
+  // Valider à nouveau avant soumission
+  this.validateOrdre();
+  
+  if (this.ordreError) {
+    this.errorMessage = 'Veuillez corriger les erreurs avant de soumettre';
+    return;
+  }
+  
+  this.loading = true;
+  this.errorMessage = '';
+  try {
+    // Récupérer l'utilisateur connecté
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.id) {
+      throw new Error('Utilisateur non connecté');
+    }
+
+    const response = await axios.post(`/api/sequences/episodes/${this.episodeId}`, this.formData, {
+      headers: {
+        'X-User-Id': user.id
       }
-      
-      this.loading = true;
-      this.errorMessage = '';
-      try {
-        const response = await axios.post(`/api/sequences/episodes/${this.episodeId}`, this.formData);
-        if (response.status === 201) {
-          this.newSequenceId = response.data.idSequence; // Stocke l'ID de la séquence créée (ajuste si le champ est différent)
-          this.$router.push({
-            path: `/projet/${this.episode.projetId}/ecran-travail`, // Utilise episode.projetId (assure-toi qu'il existe)
-            query: { episodeId: this.episodeId, sequenceId: this.newSequenceId }
-          });
-        }
-      } catch (error) {
-        console.error('Erreur lors de la création de la séquence:', error);
-        
-        // Vérifier si l'erreur est due à un doublon d'ordre
-        if (error.response?.status === 400 && 
-            error.response?.data?.message?.includes('ordre') &&
-            error.response?.data?.message?.includes('existe')) {
-          this.ordreError = 'Cet ordre existe déjà dans l\'épisode';
-          this.errorMessage = 'Erreur de validation: ' + this.ordreError;
-          
-          // Recharger les ordres existants au cas où ils auraient changé
-          await this.fetchExistingSequences();
-        } else {
-          this.errorMessage = error.response?.data?.message || 'Erreur lors de la création de la séquence. Veuillez réessayer.';
-        }
-      } finally {
-        this.loading = false;
-      }
-    },
+    });
+    
+    if (response.status === 201) {
+      this.newSequenceId = response.data.idSequence;
+      this.$router.push({
+        path: `/projet/${this.episode.projetId}/ecran-travail`,
+        query: { episodeId: this.episodeId, sequenceId: this.newSequenceId }
+      });
+    }
+  } catch (error) {
+    console.error('Erreur lors de la création de la séquence:', error);
+    
+    if (error.response?.status === 400 && 
+        error.response?.data?.message?.includes('ordre') &&
+        error.response?.data?.message?.includes('existe')) {
+      this.ordreError = 'Cet ordre existe déjà dans l\'épisode';
+      this.errorMessage = 'Erreur de validation: ' + this.ordreError;
+      await this.fetchExistingSequences();
+    } else {
+      this.errorMessage = error.response?.data?.message || 'Erreur lors de la création de la séquence. Veuillez réessayer.';
+    }
+  } finally {
+    this.loading = false;
+  }
+},
     goBack() {
       if (this.newSequenceId) {
         // Si une nouvelle séquence a été créée, redirige vers elle
