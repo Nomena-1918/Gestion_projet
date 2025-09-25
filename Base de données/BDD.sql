@@ -238,8 +238,7 @@ LEFT JOIN scenaristes s ON es.id_scenariste = s.id_scenariste
 LEFT JOIN utilisateurs u_s ON s.id_utilisateur = u_s.id_utilisateur;
 
 
--- Vue pour savoir quels épisodes un utilisateur peut modifier
-CREATE VIEW v_episodes_par_utilisateur AS
+CREATE OR REPLACE VIEW v_episodes_par_utilisateur AS
 SELECT 
     u.id_utilisateur,
     u.nom,
@@ -250,7 +249,7 @@ SELECT
     p.titre as titre_projet
 FROM utilisateurs u
 LEFT JOIN realisateurs r ON u.id_utilisateur = r.id_utilisateur
-LEFT JOIN episode_realisateurs e  r ON r.id_realisateur = er.id_realisateur
+LEFT JOIN episode_realisateurs er ON r.id_realisateur = er.id_realisateur  -- CORRECTION ici
 LEFT JOIN episodes e ON er.id_episode = e.id_episode
 LEFT JOIN projets p ON e.id_projet = p.id_projet
 WHERE u.role = 'REALISATEUR'
