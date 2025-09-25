@@ -9,4 +9,6 @@ public class CreateEpisodeDTO {
     private Integer ordre;
     private String synopsis;
     private Long statutId;
+    private Long realisateurId; 
+    private Long scenaristeId;
 }

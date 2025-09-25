@@ -16,4 +16,6 @@ public class EpisodeDTO {
     private LocalDateTime dateFin;
     private String statutNom;
     private Integer nombreSequences;
+    private RealisateurDTO realisateur; 
+    private ScenaristeDTO scenariste; 
 }
