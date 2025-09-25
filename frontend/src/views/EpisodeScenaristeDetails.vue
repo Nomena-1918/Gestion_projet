@@ -306,13 +306,12 @@ export default {
   },
   methods: {
     async loadUserEpisodes() {
-      try {
-        // Récupérer la liste des épisodes auxquels l'utilisateur a accès
-        const response = await axios.get(`/api/utilisateurs/${this.user.id}/episodes`);
-        this.userEpisodes = response.data;
-      } catch (error) {
-        console.error('Erreur lors du chargement des épisodes utilisateur:', error);
-      }
+        try {
+          const response = await axios.get(`/api/episodes/utilisateur/${this.user.id}`);
+          this.userEpisodes = response.data;
+        } catch (error) {
+          console.error('Erreur lors du chargement des épisodes utilisateur:', error);
+        }
     },
     async checkAccess() {
       const episodeId = parseInt(this.$route.params.id);
