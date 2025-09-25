@@ -584,7 +584,7 @@ export default {
       }
     },
     goToAddSequence() {
-      this.$router.push(`/episode/${this.$route.params.id}/add-sequence`);
+     this.$router.push(`/episode/${this.episode.idEpisode}/add-sequence`);
     },
     goToSequenceDetails(sequenceId) {
       this.$router.push(`/sequence/${sequenceId}/detail-sequence`);

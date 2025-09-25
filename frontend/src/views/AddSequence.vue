@@ -133,7 +133,7 @@ export default {
       return names.map(n => n[0]).join('').toUpperCase();
     },
     episodeId() {
-      return this.$route.params.episodeId || this.$route.params.id;
+      return this.$route.params.id || this.$route.params.episodeId;
     }
   },
   async created() {
@@ -148,11 +148,18 @@ export default {
   methods: {
     async loadEpisode() {
       try {
-        const response = await axios.get(`/api/episodes/${this.episodeId}`);
+        console.log('ID d\'épisode récupéré:', this.episodeId);
+        console.log('Route params:', this.$route.params);
+        
+        const response = await axios.get(`/api/episodes/${this.episodeId}`, {
+          headers: {
+            'X-User-Id': this.user.id
+          }
+        });
         this.episode = response.data;
-
       } catch (error) {
         console.error('Erreur lors du chargement de l\'épisode:', error);
+        console.error('Détails de l\'erreur:', error.response?.data);
         alert('Impossible de charger les détails de l\'épisode');
       }
     },
