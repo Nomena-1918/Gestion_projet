@@ -1,7 +1,18 @@
 <template>
   <div class="episode-details-container">
+
+     <!-- Afficher un message d'erreur si l'utilisateur n'a pas accès -->
+    <div v-if="accessDenied" class="access-denied">
+      <div class="access-denied-content">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h3>Accès refusé</h3>
+        <p>Vous n'avez pas les droits nécessaires pour accéder à cet épisode.</p>
+        <button @click="goBack" class="back-btn">Retour au projet</button>
+      </div>
+    </div>
+
     <!-- Contenu principal -->
-    <main class="main-content">
+    <main v-else class="main-content">
       <div class="episode-header">
         <button @click="goBack" class="back-btn">← Retour</button>
         <h2>Détails de l'Épisode</h2>
@@ -215,6 +226,8 @@ export default {
       episode: {},
       sequences: [],
       statutsSequence: [],
+      accessDenied: false, 
+      userEpisodes: [],
       filterTimePeriod: 'all',
       filterStatut: '',
       showEditModal: false,
@@ -277,23 +290,61 @@ export default {
       return filtered;
     },
   },
-  async created() {
-    await this.loadEpisode();
-    await this.loadSequences();
-    await this.loadStatutsSequence();
-    await this.loadCommentCount();
+ async created() {
+    await this.loadUserEpisodes(); 
+    await this.checkAccess(); 
+    if (!this.accessDenied) {
+      await this.loadEpisode();
+      await this.loadSequences();
+      await this.loadStatutsSequence();
+      await this.loadCommentCount();
+    }
     document.addEventListener('click', this.handleClickOutside);
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside);
   },
   methods: {
+    async loadUserEpisodes() {
+      try {
+        // Récupérer la liste des épisodes auxquels l'utilisateur a accès
+        const response = await axios.get(`/api/utilisateurs/${this.user.id}/episodes`);
+        this.userEpisodes = response.data;
+      } catch (error) {
+        console.error('Erreur lors du chargement des épisodes utilisateur:', error);
+      }
+    },
+    async checkAccess() {
+      const episodeId = parseInt(this.$route.params.id);
+      
+      // Les admins ont accès à tout
+      if (this.user.role === 'ADMIN') {
+        this.accessDenied = false;
+        return;
+      }
+
+      // Vérifier si l'épisode actuel est dans la liste des épisodes accessibles
+      const hasAccess = this.userEpisodes.some(ep => ep.idEpisode === episodeId);
+      
+      if (!hasAccess) {
+        this.accessDenied = true;
+      }
+    },
     async loadEpisode() {
       try {
-        const response = await axios.get(`/api/episodes/${this.$route.params.id}`);
+        
+        const response = await axios.get(`/api/episodes/${this.$route.params.id}`, {
+          headers: {
+            'X-User-Id': this.user.id
+          }
+        });
         this.episode = response.data;
       } catch (error) {
-        console.error('Erreur lors du chargement de l\'épisode:', error);
+        if (error.response?.status === 403) {
+          this.accessDenied = true;
+        } else {
+          console.error('Erreur lors du chargement de l\'épisode:', error);
+        }
       }
     },
     async loadSequences() {
@@ -1172,6 +1223,57 @@ export default {
 .episode-date:last-child .date-value {
   color: #28a745; /* Vert pour indiquer la fin */
   font-weight: 600;
+}
+
+.access-denied {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem;
+}
+
+.access-denied-content {
+  background: white;
+  padding: 3rem;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 100%;
+}
+
+.access-denied-content i {
+  font-size: 4rem;
+  color: #ff4757;
+  margin-bottom: 1rem;
+}
+
+.access-denied-content h3 {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.access-denied-content p {
+  color: #666;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.access-denied-content .back-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: transform 0.3s ease;
+}
+
+.access-denied-content .back-btn:hover {
+  transform: translateY(-2px);
 }
 
 </style>

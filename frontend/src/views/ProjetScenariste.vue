@@ -188,6 +188,8 @@ export default {
       projet: {},
       episodes: [],
       statutsEpisode: [],
+       allEpisodes: [], 
+      userEpisodes: [],
       filterTimePeriod: 'all',
       filterStatut: '',
       showEditModal: false,
@@ -246,9 +248,10 @@ export default {
       return filtered;
     },
   },
-  async created() {
+ async created() {
     await this.loadProjet();
-    await this.loadEpisodes();
+    await this.loadUserEpisodes(); 
+    await this.loadAllEpisodes();
     await this.loadStatutsEpisode();
     document.addEventListener('click', this.handleClickOutside);
   },
@@ -264,6 +267,32 @@ export default {
         console.error('Erreur lors du chargement du projet:', error);
       }
     },
+
+  async loadUserEpisodes() {
+    try {
+      
+      const response = await axios.get(`/api/episodes/utilisateur/${this.user.id}`);
+      this.userEpisodes = response.data;
+    } catch (error) {
+      console.error('Erreur lors du chargement des épisodes utilisateur:', error);
+    }
+  },
+    async loadAllEpisodes() {
+      try {
+        const response = await axios.get(`/api/episodes/projet/${this.$route.params.id}`);
+        this.allEpisodes = response.data;
+        
+        // Filtrer pour n'afficher que les épisodes accessibles
+        this.episodes = this.allEpisodes.filter(episode => 
+            this.userEpisodes.some(userEp => userEp.idEpisode === episode.idEpisode) ||
+            this.user.role === 'ADMIN'
+        );
+      } catch (error) {
+        console.error('Erreur lors du chargement des épisodes:', error);
+      }
+    },
+
+
     async loadEpisodes() {
       try {
         const response = await axios.get(`/api/episodes/projet/${this.$route.params.id}`);
@@ -281,18 +310,23 @@ export default {
       }
     }, 
    startEditEpisode(episode) {
-      this.editingEpisode = {
-        idEpisode: episode.idEpisode,
-        titre: episode.titre,
-        synopsis: episode.synopsis,
-        ordre: episode.ordre,
-        statutId: this.getStatutIdByNom(episode.statutNom),
-      };
-      this.originalOrder = episode.ordre; // Sauvegarder l'ordre original
-      this.showEditModal = true;
-      
-      // Charger les ordres existants et calculer la suggestion
-      this.loadExistingOrders();
+      const hasAccess = this.userEpisodes.some(ep => ep.idEpisode === episode.idEpisode) || 
+                      this.user.role === 'ADMIN';
+    
+      if (hasAccess) {  
+        this.editingEpisode = {
+          idEpisode: episode.idEpisode,
+          titre: episode.titre,
+          synopsis: episode.synopsis,
+          ordre: episode.ordre,
+          statutId: this.getStatutIdByNom(episode.statutNom),
+        };
+        this.originalOrder = episode.ordre;
+        this.showEditModal = true;
+        this.loadExistingOrders();
+      } else {
+        alert('Vous n\'avez pas les droits pour modifier cet épisode');
+      }
     },
      async loadExistingOrders() {
       try {
@@ -353,7 +387,6 @@ export default {
       return statut ? statut.idStatutEpisode : null;
     },
     async saveEditedEpisode() {
-      // Valider l'ordre avant soumission
       this.validateOrder();
       if (this.orderError) {
         return;
@@ -370,11 +403,13 @@ export default {
         this.showEditModal = false;
         this.editError = '';
         this.orderError = '';
-        await this.loadEpisodes();
-      } catch (error) {
-        console.error('Erreur lors de la mise à jour de l épisode:', error);
         
-        // Gestion spécifique des erreurs de duplication d'ordre
+        // CORRIGER : utiliser loadAllEpisodes au lieu de loadEpisodes
+        await this.loadAllEpisodes(); // ou await this.loadEpisodes() si vous l'ajoutez
+        
+      } catch (error) {
+        console.error('Erreur lors de la mise à jour de l\'épisode:', error);
+        
         if (error.response?.status === 400 && 
             error.response?.data?.message?.includes('ordre')) {
           this.orderError = 'Cet ordre existe déjà pour ce projet. Veuillez choisir un autre numéro.';
@@ -401,6 +436,13 @@ export default {
       this.originalOrder = null;
     },
     async confirmDeleteEpisode(episodeId) {
+      const hasAccess = this.userEpisodes.some(ep => ep.idEpisode === episodeId) || 
+                       this.user.role === 'ADMIN';
+      if (!hasAccess) {
+        alert('Vous n\'avez pas les droits pour supprimer cet épisode');
+        return;
+      }
+
       if (confirm('Êtes-vous sûr de vouloir supprimer cet épisode ?')) {
         try {
           await axios.delete(`/api/episodes/${episodeId}`);
@@ -414,10 +456,25 @@ export default {
       this.$router.push(`/projet/${this.$route.params.id}/add-episode`);
     },
     goToDetails(episodeId) {
-      this.$router.push(`/episode/${episodeId}/detail-episode`);
+      // Vérifier si l'utilisateur a accès à cet épisode
+      const hasAccess = this.userEpisodes.some(ep => ep.idEpisode === episodeId) || 
+                      this.user.role === 'ADMIN';
+      
+      if (hasAccess) {
+        this.$router.push(`/episode/${episodeId}/detail-episode`);
+      } else {
+        alert('Vous n\'avez pas accès à cet épisode');
+      }
     },
     goToAddSequence(episodeId) {
-      this.$router.push(`/episode/${episodeId}/add-sequence`);
+      const hasAccess = this.userEpisodes.some(ep => ep.idEpisode === episodeId) || 
+                       this.user.role === 'ADMIN';
+      
+      if (hasAccess) {
+        this.$router.push(`/episode/${episodeId}/add-sequence`);
+      } else {
+        alert('Vous n\'avez pas accès à cet épisode');
+      }
     },
     goBack() {
       this.$router.push('/scenariste');
