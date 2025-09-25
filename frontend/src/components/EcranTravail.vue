@@ -157,14 +157,18 @@
           <!-- Liste des scènes -->
           <div class="scenes-list">
             <div v-for="scene in currentSequence.scenes" :key="scene.idScene" class="scene-card">
-              <h3>
-                Scène {{ scene.ordre }}: {{ scene.titre }}
-                <span class="icon-edit" @click="startEditScene(scene)"><i class="fas fa-pen icon" style="color: #17a2b8;"></i></span>
-                <span class="icon-delete" @click="deleteScene(scene.idScene)"><i class="fas fa-trash icon" style="color: #dc3545;"></i></span>
-                <span class="comment-icon" @click="toggleSceneCommentSection(scene)">
-                  <i class="fas fa-comments icon" style="color: #21294F;"></i> {{ getSceneCommentCount(scene.idScene) }}
-                </span>
-              </h3>
+            <h3>
+              Scène {{ scene.ordre }}: {{ scene.titre }}
+              <span v-if="userPermissions.canCreateScene" class="icon-edit" @click="startEditScene(scene)">
+                <i class="fas fa-pen icon" style="color: #17a2b8;"></i>
+              </span>
+              <span v-if="userPermissions.canCreateScene" class="icon-delete" @click="deleteScene(scene.idScene)">
+                <i class="fas fa-trash icon" style="color: #dc3545;"></i>
+              </span>
+              <span class="comment-icon" @click="toggleSceneCommentSection(scene)">
+                <i class="fas fa-comments icon" style="color: #21294F;"></i> {{ getSceneCommentCount(scene.idScene) }}
+              </span>
+            </h3>
 
               <!-- Section commentaires scène -->
               <div v-if="showSceneCommentModal && selectedScene?.idScene === scene.idScene" class="comment-section">
@@ -195,7 +199,9 @@
 
               <div class="section-header">
                 <h4><i class="fas fa-map-pin icon" style="color: #dc3545;"></i>Lieux et Plateaux:</h4>
-                <button class="add-lieu-btn" @click="openAddLieuModal(scene)"><i class="fas fa-plus-circle icon" style="color: #21294F;"></i>Lieu/Plateau</button>
+                <button v-if="userPermissions.canCreateLieu" class="add-lieu-btn" @click="openAddLieuModal(scene)">
+                  <i class="fas fa-plus-circle icon" style="color: #21294F;"></i>Lieu/Plateau
+                </button>
               </div>
               <!-- Lieux et Plateaux -->
               <div class="lieux-plateaux" v-if="scene.sceneLieus?.length">
@@ -203,7 +209,9 @@
                   <li v-for="sceneLieu in scene.sceneLieus" :key="sceneLieu.id">
                     <strong>{{ sceneLieu.lieuNom || 'Lieu inconnu' }}</strong>
                     <span v-if="sceneLieu.plateauNom"> - <strong>Plateau:</strong> {{ sceneLieu.plateauNom }}</span>
-                    <span class="icon-delete" @click="deleteSceneLieu(sceneLieu.id)"><i class="fas fa-trash icon" style="color: #dc3545;"></i></span>
+                    <span v-if="userPermissions.canCreateLieu" class="icon-delete" @click="deleteSceneLieu(sceneLieu.id)">
+                      <i class="fas fa-trash icon" style="color: #dc3545;"></i>
+                    </span>
                     <p v-if="sceneLieu.descriptionUtilisation">Description: {{ sceneLieu.descriptionUtilisation }}</p>
                   </li>
                 </ul>
@@ -247,17 +255,17 @@
                     </span>
                     
                     <div class="dialogue-actions">
-                      <span class="icon-edit" @click="startEditDialogue(dialogue)">
+                      <span v-if="userPermissions.canCreateDialogue" class="icon-edit" @click="startEditDialogue(dialogue)">
                         <i class="fas fa-pen icon" style="color: #17a2b8;"></i>
                       </span>
-                      <span class="icon-delete" @click="deleteDialogue(dialogue.id)">
+                      <span v-if="userPermissions.canCreateDialogue" class="icon-delete" @click="deleteDialogue(dialogue.id)">
                         <i class="fas fa-trash icon" style="color: #dc3545;"></i>
                       </span>
                       <span class="comment-icon" @click="toggleDialogueCommentSection(dialogue)">
                         <i class="fas fa-comment icon" style="color: #21294F;"></i> 
                         {{ getDialogueCommentCount(dialogue.id) }}
                       </span>
-                      <span class="highlight-icon" @click="openHighlightModal(dialogue, $event)" title="Surligner">
+                      <span v-if="userPermissions.canCreateDialogue" class="highlight-icon" @click="openHighlightModal(dialogue, $event)" title="Surligner">
                         <i class="fas fa-highlighter icon" style="color: #ffeb3b;"></i>
                       </span>
                     </div>
@@ -267,7 +275,9 @@
 
               <div class="section-header">
                   <h4><i class="fas fa-comments icon" ></i></h4> 
-                  <button class="add-dialogue-btn" @click="goToAddDialogue(scene.idScene)"><i class="fas fa-plus-circle icon" style="color: #21294F;"></i>Dialogue</button>
+                 <button v-if="userPermissions.canCreateDialogue" class="add-dialogue-btn" @click="goToAddDialogue(scene.idScene)">
+                    <i class="fas fa-plus-circle icon" style="color: #21294F;"></i>Dialogue
+                  </button>
               </div>                    
             
             </div>
@@ -926,6 +936,20 @@ const checkUserPermissions = async (episodeId) => {
         });
         
         userPermissions.value = response.data;
+        
+        // Vérification supplémentaire d'accès
+        const accessResponse = await axios.get(`/api/episodes/${episodeId}/access-check`, {
+            headers: {
+                'X-User-Id': user.value.id
+            }
+        });
+        
+        // Si l'utilisateur n'a pas accès, désactiver toutes les permissions
+        if (!accessResponse.data) {
+            Object.keys(userPermissions.value).forEach(key => {
+                userPermissions.value[key] = false;
+            });
+        }
     } catch (error) {
         console.error('Erreur lors de la vérification des permissions:', error);
         // Par défaut, tout à false pour la sécurité
@@ -1308,6 +1332,11 @@ const closeEditEpisodeModal = () => {
 };
 
 const startEditSequence = (sequence) => {
+  if (!userPermissions.value.canCreateSequence) {
+    alert('Vous n\'êtes pas autorisé à modifier des séquences pour cet épisode.');
+    return;
+  }
+  
   editingSequence.value = {
     id: sequence.idSequence,
     titre: sequence.titre,
@@ -1318,6 +1347,7 @@ const startEditSequence = (sequence) => {
   editSequenceError.value = '';
   showEditSequenceModal.value = true;
 };
+
 
 const saveEditedSequence = async () => {
   editSequenceLoading.value = true;
@@ -1355,6 +1385,11 @@ const closeEditSequenceModal = () => {
 };
 
 const startEditScene = (scene) => {
+  if (!userPermissions.value.canCreateScene) {
+    alert('Vous n\'êtes pas autorisé à modifier des scènes pour cette séquence.');
+    return;
+  }
+  
   editingScene.value = {
     id: scene.idScene,
     titre: scene.titre,
@@ -1365,7 +1400,6 @@ const startEditScene = (scene) => {
   editSceneError.value = '';
   showEditSceneModal.value = true;
 };
-
 const saveEditedScene = async () => {
   editSceneLoading.value = true;
   editSceneError.value = '';
@@ -1410,17 +1444,22 @@ const closeEditSceneModal = () => {
 // Méthodes pour l'édition du dialogue
 // Méthodes pour l'édition du dialogue
 const startEditDialogue = async (dialogue) => {
+  if (!userPermissions.value.canCreateDialogue) {
+    alert('Vous n\'êtes pas autorisé à modifier des dialogues pour cette scène.');
+    return;
+  }
+  
   editingDialogue.value = {
     id: dialogue.id,
     personnageId: dialogue.personnageId || null,
     texte: dialogue.texte,
     observation: dialogue.observation || '',
     ordre: dialogue.ordre || 1,
-    sceneId: dialogue.sceneId  // Gardé et envoyé dans update
+    sceneId: dialogue.sceneId
   };
   editDialogueError.value = '';
   orderError.value = '';
-  await loadExistingOrders();  // Charge les ordres existants pour validation
+  await loadExistingOrders();
   showEditDialogueModal.value = true;
 };
 
@@ -1696,6 +1735,11 @@ const goToAddPersonnage = () => {
 
 // Méthodes pour la modale d'ajout de lieu
 const openAddLieuModal = async (scene) => {
+  if (!userPermissions.value.canCreateLieu) {
+    alert('Vous n\'êtes pas autorisé à ajouter des lieux/plateaux pour cette scène.');
+    return;
+  }
+  
   selectedSceneForLieu.value = scene;
   await loadAvailableLieux();
   await loadSceneLieus(scene.idScene);
@@ -1982,6 +2026,11 @@ const deleteDialogueComment = async (commentId) => {
 
 // Méthodes de suppression
 const deleteSequence = async (sequenceId) => {
+  if (!userPermissions.value.canCreateSequence) {
+    alert('Vous n\'êtes pas autorisé à supprimer des séquences pour cet épisode.');
+    return;
+  }
+  
   if (confirm('Êtes-vous sûr de vouloir supprimer cette séquence ?')) {
     try {
       await axios.delete(`/api/sequences/${sequenceId}`);
@@ -1994,6 +2043,11 @@ const deleteSequence = async (sequenceId) => {
 };
 
 const deleteScene = async (sceneId) => {
+  if (!userPermissions.value.canCreateScene) {
+    alert('Vous n\'êtes pas autorisé à supprimer des scènes pour cette séquence.');
+    return;
+  }
+  
   if (confirm('Êtes-vous sûr de vouloir supprimer cette scène ?')) {
     try {
       await axios.delete(`/api/scenes/${sceneId}`);
@@ -2006,6 +2060,11 @@ const deleteScene = async (sceneId) => {
 };
 
 const deleteDialogue = async (dialogueId) => {
+  if (!userPermissions.value.canCreateDialogue) {
+    alert('Vous n\'êtes pas autorisé à supprimer des dialogues pour cette scène.');
+    return;
+  }
+  
   if (confirm('Êtes-vous sûr de vouloir supprimer ce dialogue ?')) {
     try {
       await axios.delete(`/api/dialogues/${dialogueId}`);
@@ -2018,6 +2077,11 @@ const deleteDialogue = async (dialogueId) => {
 };
 
 const deleteSceneLieu = async (sceneLieuId) => {
+  if (!userPermissions.value.canCreateLieu) {
+    alert('Vous n\'êtes pas autorisé à supprimer des lieux/plateaux pour cette scène.');
+    return;
+  }
+  
   if (confirm('Êtes-vous sûr de vouloir supprimer ce lieu/plateau ?')) {
     try {
       await axios.delete(`/api/scene-lieux/${sceneLieuId}`);
@@ -2217,4 +2281,5 @@ button[disabled] {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
 </style>
