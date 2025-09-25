@@ -18,4 +18,5 @@ public class EpisodeDTO {
     private Integer nombreSequences;
     private RealisateurDTO realisateur; 
     private ScenaristeDTO scenariste; 
+    private ProjetDTO projet;
 }

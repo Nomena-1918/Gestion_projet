@@ -15,6 +15,7 @@ public class SequenceDTO {
     private LocalDateTime modifieLe;
      private LocalDateTime dateFin;
     private String statutNom;
+    private EpisodeDTO episode;
     private String episodeTitre;
     private List<SceneDTO> scenes;
 }
