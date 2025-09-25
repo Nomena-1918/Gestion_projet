@@ -42,6 +42,36 @@
           </span>
         </div>
 
+          <div class="form-group">
+          <label for="realisateur">Réalisateur *</label>
+          <select 
+            id="realisateur"
+            v-model="form.realisateurId" 
+            required
+            class="form-select"
+          >
+            <option value="">Sélectionner un réalisateur</option>
+            <option v-for="realisateur in realisateurs" :key="realisateur.idRealisateur" :value="realisateur.idRealisateur">
+              {{ realisateur.nom }} - {{ realisateur.specialite }}
+            </option>
+          </select>
+        </div>
+
+         <div class="form-group">
+        <label for="scenariste">Scénariste *</label>
+        <select 
+          id="scenariste"
+          v-model="form.scenaristeId" 
+          required
+          class="form-select"
+        >
+          <option value="">Sélectionner un scénariste</option>
+          <option v-for="scenariste in scenaristes" :key="scenariste.idScenariste" :value="scenariste.idScenariste">
+            {{ scenariste.nom }} - {{ scenariste.specialite }}
+          </option>
+        </select>
+      </div>
+
         <div class="form-group">
           <label for="projet">Titre du projet *</label>
           <input 
@@ -106,13 +136,17 @@ export default {
       user: null,
       projetTitre: '',
       statutsEpisode: [],
-      existingOrders: [], // Liste des ordres existants
+      existingOrders: [], 
+      realisateurs: [],
+      scenaristes: [],
       form: {
         titre: '',
         ordre: '',
         projetId: this.$route.params.id || this.$route.params.projetId || '',
         statutId: '',
-        synopsis: ''
+        synopsis: '',
+        realisateurId: '',
+        scenaristeId: ''
       },
       loading: false,
       errorMessage: '',
@@ -136,6 +170,8 @@ export default {
     this.fetchProjetDetails();
     this.fetchStatutsEpisode();
     this.fetchExistingEpisodes();
+    this.fetchRealisateurs(); 
+    this.fetchScenaristes();  
     document.addEventListener('click', this.handleClickOutside);
   },
   beforeUnmount() {
@@ -231,6 +267,26 @@ export default {
       this.scene.ordre = this.suggestedOrder;
       this.validateOrder();
     },
+
+    async fetchRealisateurs() {
+      try {
+        const response = await axios.get('/api/realisateurs');
+        this.realisateurs = response.data;
+      } catch (error) {
+        console.error('Erreur lors du chargement des réalisateurs:', error);
+      }
+    },
+
+     async fetchScenaristes() {
+      try {
+        const response = await axios.get('/api/scenaristes');
+        this.scenaristes = response.data;
+      } catch (error) {
+        console.error('Erreur lors du chargement des scénaristes:', error);
+      }
+    },
+
+
     async submitForm() {
       // Valider l'ordre avant soumission
       this.validateOrdre();
