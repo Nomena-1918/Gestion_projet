@@ -279,7 +279,67 @@ export const useEcranTravailStore = defineStore('ecranTravail', {
       }
       return url;
     }
+  },
+  async fetchEpisodes(projetId) {
+  // Validation robuste du projetId
+  if (!projetId || projetId === 'null' || projetId === 'undefined') {
+    console.error('projetId invalide:', projetId);
+    this.error = 'ID du projet manquant ou invalide';
+    this.isLoading = false;
+    return;
   }
+  
+  this.isLoading = true;
+  try {
+    this.projetId = projetId;
+    this.error = null;
+    console.log(`Fetching episodes for projetId: ${projetId}`);
+    
+    // Tester les deux formats d'URL possibles
+    let response;
+    try {
+      // Essayer d'abord sans le préfixe ecran-travail
+      response = await axios.get(`/api/projets/${projetId}/episodes`);
+    } catch (firstError) {
+      console.log('Première tentative échouée, essai avec préfixe ecran-travail');
+      // Essayer avec le préfixe ecran-travail
+      response = await axios.get(`/api/ecran-travail/projets/${projetId}/episodes`);
+    }
+    
+    console.log('Response status:', response.status);
+    console.log('Response data:', response.data);
+    
+    if (response.status === 204 || !response.data || response.data.length === 0) {
+      this.error = 'Aucun épisode trouvé pour ce projet.';
+      this.episodes = [];
+      this.currentEpisode = null;
+      this.sequences = [];
+      this.currentSequence = null;
+      this.currentEpisodeIndex = 0;
+      return;
+    }
+    
+    this.episodes = response.data;
+    this.episodes.sort((a, b) => a.ordre - b.ordre);
+
+    if (this.episodes.length > 0) {
+      this.currentEpisodeIndex = 0;
+      this.currentEpisode = this.episodes[0];
+      await this.fetchSequences(this.episodes[0].idEpisode);
+    }
+  } catch (error) {
+    console.error('Error details:', error);
+    console.error('Response:', error.response);
+    
+    this.error = `Erreur lors du chargement des épisodes: ${error.response?.data?.message || error.message}`;
+    this.currentEpisode = null;
+    this.sequences = [];
+    this.currentSequence = null;
+    this.currentEpisodeIndex = 0;
+  } finally {
+    this.isLoading = false;
+  }
+},
 })
 
 
