@@ -23,6 +23,7 @@ import com.example.films.repository.ScenaristeRepository;
 import com.example.films.repository.SequenceRepository;
 import com.example.films.repository.StatutEpisodeRepository;
 import com.example.films.repository.UtilisateurRepository;
+import com.example.films.dto.RechercheEpisodeDTO;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -303,6 +304,11 @@ public class EpisodeService {
         dto.setNombreSequences(sequenceCount);
         
         return dto;
+    }
+
+    // Dans EpisodeService.java
+    public List<RechercheEpisodeDTO> rechercherEpisodes(String query) {
+        return episodeRepository.rechercherEpisodes(query.toLowerCase());
     }
         
 }

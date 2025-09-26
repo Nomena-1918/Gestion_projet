@@ -12,6 +12,7 @@ import com.example.films.repository.SequenceStatutRepository;
 import com.example.films.repository.StatutSequenceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.films.dto.RechercheSequenceDTO;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -164,4 +165,8 @@ public class SequenceService {
                 .orElseThrow(() -> new RuntimeException("Séquence non trouvée"));
         return convertToDTO(sequence);
     }
+
+    public List<RechercheSequenceDTO> rechercherSequences(String query) {
+    return sequenceRepository.rechercherSequences(query.toLowerCase());
+}
 }

@@ -12,6 +12,7 @@ import com.example.films.repository.SequenceRepository;
 import com.example.films.repository.StatutSceneRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.films.dto.RechercheSceneDTO;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -156,5 +157,10 @@ public class SceneService {
         return scenes.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+
+    // Dans SceneService.java
+    public List<RechercheSceneDTO> rechercherScenes(String query) {
+        return sceneRepository.rechercherScenes(query.toLowerCase());
     }
 }
