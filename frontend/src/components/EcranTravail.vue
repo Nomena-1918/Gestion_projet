@@ -1045,16 +1045,22 @@ onMounted(async () => {
   
   if (!projetId.value) {
     console.error('ID du projet non trouvé dans les params de route !');
-    // Essayez de récupérer depuis query params ou store si nécessaire
-    projetId.value = route.query.projetId || store.projetId;
+    
+    // Tentative de récupération depuis l'URL actuelle
+    const pathSegments = route.path.split('/');
+    const projetIndex = pathSegments.indexOf('projet');
+    if (projetIndex !== -1 && pathSegments[projetIndex + 1]) {
+      projetId.value = pathSegments[projetIndex + 1];
+    }
     
     if (!projetId.value) {
-      console.error('ID du projet non trouvable !');
+      console.error('ID du projet non trouvable dans l\'URL !');
       return;
     }
   }
 
   await store.fetchEpisodes(projetId.value);
+  
   
   // Charger les données supplémentaires
   if (store.currentSequence) {
@@ -1124,6 +1130,36 @@ watch(
   },
   { immediate: true }
 );
+
+watch(
+  () => route.query,
+  async (newQuery) => {
+    // Si un episodeId est passé dans les query params
+    if (newQuery.episodeId && newQuery.episodeId !== store.currentEpisode?.idEpisode) {
+      await store.selectEpisodeById(newQuery.episodeId);
+    }
+    
+    // Si un sequenceId est passé dans les query params
+    if (newQuery.sequenceId && newQuery.sequenceId !== store.currentSequence?.idSequence) {
+      await store.selectSequenceById(newQuery.sequenceId);
+    }
+  },
+  { immediate: true, deep: true }
+);
+
+// Watcher pour les changements de paramètres de route
+watch(
+  () => route.params.idProjet,
+  async (newProjetId) => {
+    if (newProjetId && newProjetId !== projetId.value) {
+      projetId.value = newProjetId;
+      await store.fetchEpisodes(projetId.value);
+      await loadAvailableLieux();
+    }
+  },
+  { immediate: true }
+);
+
 
 // Charger les statuts
 const loadStatutsEpisode = async () => {
@@ -2091,6 +2127,182 @@ const hasPrev = computed(() => store.hasPrev);
 </script>
 
 <style>
+/* Styles pour la barre de recherche */
+.global-search-section {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.search-container {
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 45px 12px 45px;
+  border: 2px solid #e0e0e0;
+  border-radius: 25px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.search-input:focus {
+  border-color: #243168;
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.clear-search-btn:hover {
+  color: #333;
+}
+
+/* Styles pour les résultats de recherche */
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 800px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  margin-top: 5px;
+}
+
+.search-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.search-results-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.close-results-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.results-list {
+  padding: 10px 0;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+  background-color: #f8f9fa;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.result-type-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  margin-right: 12px;
+  min-width: 70px;
+  text-align: center;
+}
+
+.result-type-badge.episode {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.result-type-badge.scene {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.result-type-badge.sequence {
+  background-color: #e8f5e8;
+  color: #388e3c;
+}
+
+.result-content {
+  flex: 1;
+}
+
+.result-content h4 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.result-details {
+  margin: 0 0 5px 0;
+  font-size: 12px;
+  color: #666;
+}
+
+.result-details span {
+  margin-right: 10px;
+}
+
+.result-synopsis {
+  margin: 0;
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+}
+
+.result-arrow {
+  color: #666;
+  margin-left: 10px;
+}
+
+.no-results {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
+}
+
 .sequence-navigation {
   display: flex;
   gap: 5px;
