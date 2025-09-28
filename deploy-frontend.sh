@@ -50,6 +50,7 @@ info "--- Frontend : cd \"$REMOTE_FRONTEND_DIR\""
 cd "$REMOTE_FRONTEND_DIR"
 
 info "--- git pull"
+git checkout master-mysql
 git pull
 
 if [ -n "$REMOTE_NODE_SETUP" ]; then

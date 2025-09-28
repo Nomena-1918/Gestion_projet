@@ -61,6 +61,7 @@ info "--- Backend : cd \"$REMOTE_BACKEND_DIR\""
 cd "$REMOTE_BACKEND_DIR"
 
 info "--- git pull"
+git checkout master-mysql
 git pull
 
 info "--- Maven build (WAR)"
