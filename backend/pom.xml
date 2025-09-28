@@ -13,6 +13,7 @@
     <groupId>com.example</groupId>
     <artifactId>film-management</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
     <name>film-management</name>
     <description>Application de gestion de films</description>
 
@@ -33,10 +34,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
         <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.33</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -66,10 +68,56 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
 
-    
+    <profiles>
+        <profile>
+            <id>war</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <!-- Use the servlet container provided by the application server when building WAR -->
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-war-plugin</artifactId>
+                        <version>3.3.2</version>
+                        <executions>
+                            <execution>
+                                <id>attach-war</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>war</goal>
+                                </goals>
+                                <configuration>
+                                    <warName>${project.artifactId}-${project.version}-war</warName>
+                                    <classifier>war</classifier>
+                                    <failOnMissingWebXml>false</failOnMissingWebXml>
+                                    <classesDirectory>${project.build.outputDirectory}</classesDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
