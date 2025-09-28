@@ -68,6 +68,15 @@ Gestion_projet/
 └─ README.md                     # This file
 ```
 
+## How to build
+- JAR (default):
+  - Command: mvn clean package
+  - Output: backend/target/film-management-0.0.1-SNAPSHOT.jar (executable)
+- WAR (when needed):
+  - Command: mvn clean package -P war
+  - Output: backend/target/film-management-0.0.1-SNAPSHOT-war.war
+Note: For deploying the WAR to an external servlet container (Tomcat, etc.), ensure your main app class extends SpringBootServletInitializer and overrides configure(...).
+
 ## Setup
 ### 1) Database (MySQL)
 1. Create a MySQL database named gestion_projet_film (as per application.properties).
