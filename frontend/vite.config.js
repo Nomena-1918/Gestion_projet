@@ -11,7 +11,7 @@ server: {
         changeOrigin: true,
         secure: false
       },
-    '/api': {
+    '/gestion_projet_cinema/api': {
       target: 'http://localhost:8080',
       changeOrigin: true,
       rewrite: (path) => path 
