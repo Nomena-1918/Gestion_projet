@@ -20,4 +20,5 @@ GRANT ALL PRIVILEGES ON `gestion_projet_film`.* TO 'gestion_projet_film_user'@'1
 FLUSH PRIVILEGES;
 
 -- (Optionnel) Vérification - affiche les privilèges pour l'utilisateur
--- SHOW GRANTS FOR 'gestion_projet_film_user'@'localhost';
+SHOW GRANTS FOR 'gestion_projet_film_user'@'localhost';
+SHOW GRANTS FOR 'gestion_projet_film_user'@'127.0.0.1';

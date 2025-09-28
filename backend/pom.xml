@@ -107,7 +107,7 @@
                                     <goal>war</goal>
                                 </goals>
                                 <configuration>
-                                    <warName>${project.artifactId}-${project.version}-war</warName>
+                                    <warName>${project.artifactId}-${project.version}</warName>
                                     <classifier>war</classifier>
                                     <failOnMissingWebXml>false</failOnMissingWebXml>
                                     <classesDirectory>${project.build.outputDirectory}</classesDirectory>
