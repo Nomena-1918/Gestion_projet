@@ -7,12 +7,12 @@ export default defineConfig({
 server: {
   proxy: {
     '/ecran-travail': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:8080/gestion_projet_cinema',
         changeOrigin: true,
         secure: false
       },
     '/gestion_projet_cinema': {
-      target: 'http://localhost:8080',
+      target: 'http://localhost:8080/gestion_projet_cinema',
       changeOrigin: true,
       rewrite: (path) => path 
     }
