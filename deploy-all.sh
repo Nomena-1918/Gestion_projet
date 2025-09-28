@@ -35,5 +35,3 @@ info "--- Déploiement backend ---"
 
 info "--- Déploiement frontend ---"
 "$ROOT_DIR/deploy-frontend.sh"
-
-success "Tous les déploiements sont terminés 🚀"

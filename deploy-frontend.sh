@@ -69,7 +69,10 @@ fi
 info "--- npm run $FRONTEND_NPM_RUN_SCRIPT"
 "$REMOTE_NPM_CMD" run "$FRONTEND_NPM_RUN_SCRIPT"
 
-info "--- serve -s build"
-serve -s build
 
 success "Frontend déployé 🚀"
+
+success "Tous les déploiements sont terminés 🚀"
+
+info "--- serve -s build"
+serve -s build --port 5173
