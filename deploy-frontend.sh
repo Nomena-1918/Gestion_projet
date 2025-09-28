@@ -75,4 +75,4 @@ success "Frontend déployé 🚀"
 success "Tous les déploiements sont terminés 🚀"
 
 info "--- preview built frontend (vite)"
-"$REMOTE_NPM_CMD" run preview --host 0.0.0.0 --port 5173
+"$REMOTE_NPM_CMD" run preview
