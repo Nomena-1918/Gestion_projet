@@ -74,5 +74,5 @@ success "Frontend déployé 🚀"
 
 success "Tous les déploiements sont terminés 🚀"
 
-info "--- serve -s build"
-serve -s build --port 5173
+info "--- preview built frontend (vite)"
+"$REMOTE_NPM_CMD" run preview -- --port 5173
