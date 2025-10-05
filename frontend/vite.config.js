@@ -1,9 +1,15 @@
 import {defineConfig} from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { resolve } from 'path'
 
 export default defineConfig({
     plugins: [vue()],
-    base: '/gestion_projet_cinema',
+    base: '/',
+    resolve: {
+        alias: {
+            '@': resolve(__dirname, 'src')
+        }
+    },
     server: {
         proxy: {
             '/ecran-travail': {
@@ -11,7 +17,7 @@ export default defineConfig({
                 changeOrigin: true,
                 secure: false
             },
-            '/gestion_projet_cinema': {
+            '/api': {
                 target: 'http://localhost:8080/gestion_projet_cinema',
                 changeOrigin: true,
                 rewrite: (path) => path

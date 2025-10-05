@@ -15,7 +15,7 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-ENV_FILE=".env"
+ENV_FILE="$(dirname "$0")/.env"
 
 info()    { echo -e "${BLUE}$*${NC}"; }
 success() { echo -e "${GREEN}$*${NC}"; }
@@ -35,6 +35,7 @@ fi
 
 # --- Variables (minimales nécessaires) ---
 REMOTE_FRONTEND_DIR="${REMOTE_FRONTEND_DIR:-/opt/apps/absolute_cinema/frontend}"
+REMOTE_BACKEND_DIR="${REMOTE_BACKEND_DIR:-/opt/apps/absolute_cinema/backend}"
 REMOTE_NPM_CMD="${REMOTE_NPM_CMD:-npm}"
 FRONTEND_NPM_RUN_SCRIPT="${FRONTEND_NPM_RUN_SCRIPT:-build}"
 
@@ -53,6 +54,9 @@ info "--- git pull"
 git checkout master-mysql
 git pull
 
+# Créer le répertoire de destination pour les assets statiques dans le backend
+BACKEND_STATIC_DIR="$REMOTE_BACKEND_DIR/src/main/resources/static"
+
 if [ -n "$REMOTE_NODE_SETUP" ]; then
   info "--- Préparation Node (REMOTE_NODE_SETUP)"
   eval "$REMOTE_NODE_SETUP"
@@ -66,13 +70,20 @@ else
   "$REMOTE_NPM_CMD" install --no-audit --no-fund
 fi
 
+info "--- Construction du frontend dans le backend"
+# Modifier temporairement le vite.config.js pour construire dans le bon répertoire
+VITE_CONFIG_BACKUP="$REMOTE_FRONTEND_DIR/vite.config.js.backup"
+cp "$REMOTE_FRONTEND_DIR/vite.config.js" "$VITE_CONFIG_BACKUP"
+
+# Modifier le outDir dans vite.config.js
+sed -i.bak 's|outDir: '\''.*'\''|outDir: '\'$BACKEND_STATIC_DIR\''|' "$REMOTE_FRONTEND_DIR/vite.config.js"
+
 info "--- npm run $FRONTEND_NPM_RUN_SCRIPT"
 "$REMOTE_NPM_CMD" run "$FRONTEND_NPM_RUN_SCRIPT"
 
+# Restaurer le fichier vite.config.js original
+mv "$VITE_CONFIG_BACKUP" "$REMOTE_FRONTEND_DIR/vite.config.js"
+rm -f "$REMOTE_FRONTEND_DIR/vite.config.js.bak"
+
 
 success "Frontend déployé 🚀"
-
-success "Tous les déploiements sont terminés 🚀"
-
-info "--- preview built frontend (vite)"
-"$REMOTE_NPM_CMD" run preview

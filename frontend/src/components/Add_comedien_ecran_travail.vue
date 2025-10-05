@@ -256,8 +256,11 @@ export default {
   methods: {
      async loadProjetInfo() {
     try {
+      const apiBase = import.meta.env.PROD
+          ? import.meta.env.VITE_API_URL
+          : '';
       console.log('Chargement des infos du projet ID:', this.projetId);
-      const response = await axios.get(`/api/projets/${this.projetId}`);
+      const response = await axios.get(`${apiBase}/api/projets/${this.projetId}`);
       this.projetTitre = response.data.titre;
       console.log('Projet trouvé:', this.projetTitre);
     } catch (error) {

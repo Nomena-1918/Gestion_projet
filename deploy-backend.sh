@@ -3,7 +3,6 @@
 #           BACKEND DEPLOY (LOCAL VPS)
 #   - build WAR avec Maven
 #   - copie vers Tomcat webapps
-#   - (optionnel) restart service Tomcat
 # ============================================
 
 set -euo pipefail
@@ -15,7 +14,7 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-ENV_FILE=".env"
+ENV_FILE="$(dirname "$0")/.env"
 
 info()    { echo -e "${BLUE}$*${NC}"; }
 success() { echo -e "${GREEN}$*${NC}"; }
@@ -64,6 +63,23 @@ info "--- git pull"
 git checkout master-mysql
 git pull
 
+info "--- Vérification des assets frontend"
+STATIC_DIR="$REMOTE_BACKEND_DIR/src/main/resources/static"
+if [ ! -d "$STATIC_DIR" ]; then
+  err "Répertoire des assets frontend manquant: $STATIC_DIR"
+  err "Assurez-vous que le frontend a été construit avant le backend."
+  exit 1
+fi
+
+# Vérifier qu'il y a des fichiers dans le répertoire static
+if [ -z "$(ls -A "$STATIC_DIR" 2>/dev/null)" ]; then
+  err "Aucun asset frontend trouvé dans: $STATIC_DIR"
+  err "Assurez-vous que le frontend a été construit correctement."
+  exit 1
+fi
+
+info "Assets frontend trouvés dans: $STATIC_DIR"
+
 info "--- Maven build (WAR)"
 # Évite les soucis de word-splitting en découpant MVN_GOALS proprement
 IFS=' ' read -r -a MVN_ARGS <<< "$MVN_GOALS"
@@ -85,4 +101,4 @@ if [ -d "$APP_DIR" ]; then
   $SUDO rm -rf -- "$APP_DIR"
 fi
 
-success "Backend déployé : \"$TARGET_WAR_PATH\" 🚀"
+success "Backend déployé : \"$TARGET_WAR_PATH\" "
